@@ -1,0 +1,73 @@
+{
+  "mode": "per_sensor",
+  "import": {
+    "parsed_ok": 37,
+    "skipped": 9
+  },
+  "filter": {
+    "from": "2026-02-18T08:00:00",
+    "to": "2026-02-18T18:15:00"
+  },
+  "data": {
+    "total": 37,
+    "filtered": 37
+  },
+  "stats_by_sensor": {
+    "S1": {
+      "count": 15,
+      "min": -50,
+      "max": 100,
+      "mean": 14.82,
+      "stddev": 28.1058
+    },
+    "S2": {
+      "count": 10,
+      "min": 19.8,
+      "max": 200,
+      "mean": 40.98,
+      "stddev": 53.0611
+    },
+    "S3": {
+      "count": 9,
+      "min": 4.7,
+      "max": 50,
+      "mean": 10.0444,
+      "stddev": 14.1281
+    },
+    "S4": {
+      "count": 3,
+      "min": 7,
+      "max": 7,
+      "mean": 7,
+      "stddev": 0
+    }
+  },
+  "anomalies": {
+    "method": "zscore",
+    "threshold": 1,
+    "top_n": 5,
+    "mode": "per_sensor",
+    "per_sensor": {
+      "S1": {
+        "count": 2,
+        "top": [
+          {"timestamp":"2026-02-18T10:45:00","sensor":"S1","value":100,"z":3.03069},
+          {"timestamp":"2026-02-18T12:45:00","sensor":"S1","value":-50,"z":-2.30629}
+        ]
+      },
+      "S2": {
+        "count": 1,
+        "top": [
+          {"timestamp":"2026-02-18T13:00:00","sensor":"S2","value":200,"z":2.99692}
+        ]
+      },
+      "S3": {
+        "count": 1,
+        "top": [
+          {"timestamp":"2026-02-18T13:15:00","sensor":"S3","value":50,"z":2.8281}
+        ]
+      },
+      "S4": { "count": 0, "top": [] }
+    }
+  }
+}

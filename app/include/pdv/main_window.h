@@ -13,6 +13,7 @@ public:
 
 private:
     void createMenu();
+    void openFile();
 };
 
-}
+} // namespace pdv
