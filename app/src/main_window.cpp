@@ -32,7 +32,14 @@ void MainWindow::openFile()
         return;
     }
 
-    statusBar()->showMessage(QString("Selected file: %1").arg(filePath));
+    const LoadResult result = m_fileLoaderService.loadFile(filePath);
+
+    if (!result.success) {
+        statusBar()->showMessage(QString("Failed to load file: %1").arg(result.errorMessage), 5000);
+        return;
+    }
+
+    statusBar()->showMessage(QString("Selected file: %1").arg(result.session.filePath));
 }
 
 } // namespace pdv

@@ -2,6 +2,8 @@
 
 #include <QMainWindow>
 
+#include "pdv/file_loader_service.h"
+
 namespace pdv {
 
 class MainWindow : public QMainWindow
@@ -14,6 +16,8 @@ public:
 private:
     void createMenu();
     void openFile();
+
+    FileLoaderService m_fileLoaderService;
 };
 
 } // namespace pdv
