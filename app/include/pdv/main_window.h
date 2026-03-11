@@ -5,8 +5,11 @@
 #include <optional>
 
 class QLabel;
+class QTableView;
 
 #include "pdv/file_loader_service.h"
+#include "pdv/csv_samples_table_model.h"
+#include "pdv/wav_samples_table_model.h"
 #include "pdv/session_data.h"
 
 namespace pdv {
@@ -23,13 +26,18 @@ private:
     void createCentralWorkspace();
     void openFile();
     void updateWindowTitle();
+    void clearLoadedData();
+    void displaySessionData();
 
     FileLoaderService m_fileLoaderService;
     std::optional<SessionData> m_currentSession;
 
-    QLabel* m_dataPlaceholderLabel = nullptr;
+    QTableView* m_samplesTableView = nullptr;
     QLabel* m_statisticsPlaceholderLabel = nullptr;
     QLabel* m_alertsPlaceholderLabel = nullptr;
+
+    CsvSamplesTableModel* m_csvSamplesModel = nullptr;
+    WavSamplesTableModel* m_wavSamplesModel = nullptr;
 };
 
 } // namespace pdv
