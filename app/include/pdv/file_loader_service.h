@@ -6,7 +6,8 @@
 
 namespace pdv {
 
-class FileLoaderService {
+class FileLoaderService
+{
 public:
     LoadResult loadFile(const QString& filePath) const;
 

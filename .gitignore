@@ -45,3 +45,5 @@ ui_*.h
 # misc
 .DS_Store
 *.log
+
+aaaa.cpp

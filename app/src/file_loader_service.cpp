@@ -4,7 +4,6 @@
 
 #include <exception>
 #include <fstream>
-#include <string>
 
 #include <pdt/csv_reader.h>
 #include <pdt/dataset.h>
@@ -14,16 +13,16 @@ namespace pdv {
 
 LoadResult FileLoaderService::loadFile(const QString &filePath) const
 {
-    const auto kind = detectFileKind(filePath);
-
-    switch (kind) {
+    switch (detectFileKind(filePath)) {
     case SessionData::FileKind::Csv:
         return loadCsv(filePath);
+
     case SessionData::FileKind::Wav:
         return loadWav(filePath);
+
     case SessionData::FileKind::Unknown:
     default:
-        return {
+        return LoadResult{
             .success = false,
             .errorMessage = "Unsupported file type.",
             .session = {}
@@ -34,8 +33,8 @@ LoadResult FileLoaderService::loadFile(const QString &filePath) const
 LoadResult FileLoaderService::loadCsv(const QString &filePath) const
 {
     try {
-        std::ifstream input(filePath.toStdString());
-        if (!input.is_open()) {
+        std::ifstream file(filePath.toStdString());
+        if (!file.is_open()) {
             return LoadResult{
                 .success = false,
                 .errorMessage = "Failed to open CSV file.",
@@ -43,7 +42,7 @@ LoadResult FileLoaderService::loadCsv(const QString &filePath) const
             };
         }
 
-        const auto importResult = pdt::read_csv(input);
+        const auto importResult = pdt::read_csv(file);
         SessionData session;
         session.kind = SessionData::FileKind::Csv;
         session.filePath = filePath;

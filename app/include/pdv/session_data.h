@@ -5,8 +5,6 @@
 #include <optional>
 
 #include <pdt/dataset.h>
-#include <pdt/peak_detection.h>
-#include <pdt/report.h>
 #include <pdt/wav_reader.h>
 
 namespace pdv {
