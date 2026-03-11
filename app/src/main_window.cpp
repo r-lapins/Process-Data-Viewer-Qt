@@ -2,8 +2,13 @@
 
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGroupBox>
+#include <QLabel>
 #include <QMenuBar>
+#include <QSplitter>
 #include <QStatusBar>
+#include <QVBoxLayout>
+#include <QWidget>
 
 namespace pdv {
 
@@ -11,6 +16,7 @@ MainWindow::MainWindow()
 {
     resize(1000, 700);
     createMenu();
+    createCentralWorkspace();
     statusBar()->showMessage("Ready");
     updateWindowTitle();
 }
@@ -24,10 +30,64 @@ void MainWindow::createMenu()
             this, &MainWindow::openFile);
 }
 
+void MainWindow::createCentralWorkspace()
+{
+    auto* centralWidget = new QWidget(this);
+    auto* centralLayout = new QVBoxLayout(centralWidget);
+    centralLayout->setContentsMargins(8, 8, 8, 8);
+
+    auto* splitter = new QSplitter(Qt::Horizontal, centralWidget);
+
+    // Left panel - data area
+    auto* dataGroup = new QGroupBox("Data", splitter);
+    auto* dataLayout = new QVBoxLayout(dataGroup);
+
+    m_dataPlaceholderLabel = new QLabel("No data loaded", dataGroup);
+    m_dataPlaceholderLabel->setWordWrap(true);
+    dataLayout->addWidget(m_dataPlaceholderLabel);
+    dataLayout->addStretch();
+
+    // Right panel container
+    auto* rightPanel = new QWidget(splitter);
+    auto* rightLayout = new QVBoxLayout(rightPanel);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+
+    // Statistics section
+    auto* statisticsGroup = new QGroupBox("Statistics", rightPanel);
+    auto* statisticsLayout = new QVBoxLayout(statisticsGroup);
+
+    m_statisticsPlaceholderLabel = new QLabel("No statistics available", statisticsGroup);
+    m_statisticsPlaceholderLabel->setWordWrap(true);
+    statisticsLayout->addWidget(m_statisticsPlaceholderLabel);
+    statisticsLayout->addStretch();
+
+    // Alerts section
+    auto* alertsGroup = new QGroupBox("Alerts", rightPanel);
+    auto* alertsLayout = new QVBoxLayout(alertsGroup);
+
+    m_alertsPlaceholderLabel = new QLabel("No alerts available", alertsGroup);
+    m_alertsPlaceholderLabel->setWordWrap(true);
+    alertsLayout->addWidget(m_alertsPlaceholderLabel);
+    alertsLayout->addStretch();
+
+
+    rightLayout->addWidget(statisticsGroup);
+    rightLayout->addWidget(alertsGroup);
+
+    splitter->addWidget(dataGroup);
+    splitter->addWidget(rightPanel);
+    splitter->setStretchFactor(0, 3);
+    splitter->setStretchFactor(1, 2);
+
+    centralLayout->addWidget(splitter);
+    setCentralWidget(centralWidget);
+}
+
 void MainWindow::openFile()
 {
     const QString filePath = QFileDialog::getOpenFileName(
-        this, "Open file", QString(), "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
+        this,        "Open file",
+        QString(),        "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
         );
 
     if (filePath.isEmpty()) {
@@ -41,6 +101,18 @@ void MainWindow::openFile()
         m_currentSession.reset();
         updateWindowTitle();
 
+        if (m_dataPlaceholderLabel != nullptr) {
+            m_dataPlaceholderLabel->setText("No data loaded");
+        }
+
+        if (m_statisticsPlaceholderLabel != nullptr) {
+            m_statisticsPlaceholderLabel->setText("No statistics available");
+        }
+
+        if (m_alertsPlaceholderLabel != nullptr) {
+            m_alertsPlaceholderLabel->setText("No alerts available");
+        }
+
         statusBar()->showMessage(
             QString("Failed to load file: %1").arg(result.errorMessage),
             5000
@@ -51,23 +123,56 @@ void MainWindow::openFile()
     m_currentSession = result.session;
     updateWindowTitle();
 
+    if (m_dataPlaceholderLabel != nullptr) {
+        switch (result.session.kind) {
+        case SessionData::FileKind::Csv:
+            m_dataPlaceholderLabel->setText(
+                QString("CSV file loaded:\n%1").arg(result.session.filePath)
+                );
+            break;
+
+        case SessionData::FileKind::Wav:
+            m_dataPlaceholderLabel->setText(
+                QString("WAV file loaded:\n%1").arg(result.session.filePath)
+                );
+            break;
+
+        case SessionData::FileKind::Unknown:
+        default:
+            m_dataPlaceholderLabel->setText(
+                QString("File loaded:\n%1").arg(result.session.filePath)
+                );
+            break;
+        }
+    }
+
+    if (m_statisticsPlaceholderLabel != nullptr) {
+        m_statisticsPlaceholderLabel->setText("Statistics panel is ready");
+    }
+
+    if (m_alertsPlaceholderLabel != nullptr) {
+        m_alertsPlaceholderLabel->setText("Alerts panel is ready");
+    }
+
     const QFileInfo fileInfo(result.session.filePath);
-    switch (result.session.kind){
-    case pdv::SessionData::FileKind::Csv:
+
+    switch (result.session.kind) {
+    case SessionData::FileKind::Csv:
         statusBar()->showMessage(
             QString("Loaded CSV file: %1").arg(fileInfo.fileName()),
             5000
             );
         break;
 
-    case pdv::SessionData::FileKind::Wav:
+    case SessionData::FileKind::Wav:
         statusBar()->showMessage(
             QString("Loaded WAV file: %1").arg(fileInfo.fileName()),
             5000
             );
         break;
 
-    case pdv::SessionData::FileKind::Unknown:
+    case SessionData::FileKind::Unknown:
+    default:
         statusBar()->showMessage(
             QString("Loaded file: %1").arg(fileInfo.fileName()),
             5000
