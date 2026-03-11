@@ -1,3 +1,4 @@
 [submodule "external/process-data-toolkit"]
 	path = external/process-data-toolkit
 	url = git@github.com:r-lapins/Process-Data-Toolkit.git
+	branch = main
