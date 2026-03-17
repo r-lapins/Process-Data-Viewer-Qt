@@ -5,9 +5,9 @@
 #include <exception>
 #include <fstream>
 
-#include <pdt/csv_reader.h>
-#include <pdt/dataset.h>
-#include <pdt/wav_reader.h>
+#include <pdt/core/csv_reader.h>
+#include <pdt/core/dataset.h>
+#include <pdt/signal/wav_reader.h>
 
 namespace pdv {
 

@@ -4,8 +4,8 @@
 
 #include <optional>
 
-#include <pdt/dataset.h>
-#include <pdt/wav_reader.h>
+#include <pdt/core/dataset.h>
+#include <pdt/signal/wav_reader.h>
 
 namespace pdv {
 

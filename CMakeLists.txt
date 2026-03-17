@@ -13,7 +13,9 @@ qt_standard_project_setup()
 # core library
 set(PDT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(PDT_BUILD_CLI OFF CACHE BOOL "" FORCE)
-set(PDT_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
+set(PDT_BUILD_SPECTRUM OFF CACHE BOOL "" FORCE)
+set(PDT_BUILD_BENCH OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(external/process-data-toolkit)
 
 # application

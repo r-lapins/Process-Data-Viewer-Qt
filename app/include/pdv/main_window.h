@@ -29,11 +29,23 @@ private:
     void clearLoadedData();
     void displaySessionData();
 
+    void resetStatisticsPanel();
+    void updateStatisticsPanel();
+
     FileLoaderService m_fileLoaderService;
     std::optional<SessionData> m_currentSession;
 
     QTableView* m_samplesTableView = nullptr;
-    QLabel* m_statisticsPlaceholderLabel = nullptr;
+
+    QLabel* m_statsFileTypeValueLabel = nullptr;
+    QLabel* m_statsSampleRateValueLabel = nullptr;
+    QLabel* m_statsChannelsValueLabel = nullptr;
+    QLabel* m_statsCountValueLabel = nullptr;
+    QLabel* m_statsMinValueLabel = nullptr;
+    QLabel* m_statsMaxValueLabel = nullptr;
+    QLabel* m_statsMeanValueLabel = nullptr;
+    QLabel* m_statsStddevValueLabel = nullptr;
+
     QLabel* m_alertsPlaceholderLabel = nullptr;
 
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;

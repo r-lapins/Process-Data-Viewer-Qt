@@ -4,7 +4,7 @@
 
 #include <optional>
 
-#include <pdt/wav_reader.h>
+#include <pdt/signal/wav_reader.h>
 
 namespace pdv {
 

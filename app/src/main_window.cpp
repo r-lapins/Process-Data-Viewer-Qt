@@ -1,5 +1,9 @@
 #include "pdv/main_window.h"
 
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGroupBox>
@@ -11,6 +15,7 @@
 #include <QWidget>
 #include <QTableView>
 #include <QHeaderView>
+#include <QFormLayout>
 
 namespace pdv {
 
@@ -23,6 +28,7 @@ MainWindow::MainWindow()
 
     createMenu();
     createCentralWorkspace();
+    resetStatisticsPanel();
     statusBar()->showMessage("Ready");
     updateWindowTitle();
 }
@@ -66,12 +72,25 @@ void MainWindow::createCentralWorkspace()
 
     // Statistics section
     auto* statisticsGroup = new QGroupBox("Statistics", rightPanel);
-    auto* statisticsLayout = new QVBoxLayout(statisticsGroup);
+    auto* statisticsLayout = new QFormLayout(statisticsGroup);
 
-    m_statisticsPlaceholderLabel = new QLabel("No statistics available", statisticsGroup);
-    m_statisticsPlaceholderLabel->setWordWrap(true);
-    statisticsLayout->addWidget(m_statisticsPlaceholderLabel);
-    statisticsLayout->addStretch();
+    m_statsFileTypeValueLabel = new QLabel("-", statisticsGroup);
+    m_statsSampleRateValueLabel = new QLabel("-", statisticsGroup);
+    m_statsChannelsValueLabel = new QLabel("-", statisticsGroup);
+    m_statsCountValueLabel = new QLabel("-", statisticsGroup);
+    m_statsMinValueLabel = new QLabel("-", statisticsGroup);
+    m_statsMaxValueLabel = new QLabel("-", statisticsGroup);
+    m_statsMeanValueLabel = new QLabel("-", statisticsGroup);
+    m_statsStddevValueLabel = new QLabel("-", statisticsGroup);
+
+    statisticsLayout->addRow("File type:", m_statsFileTypeValueLabel);
+    statisticsLayout->addRow("Sample rate:", m_statsSampleRateValueLabel);
+    statisticsLayout->addRow("Channels:", m_statsChannelsValueLabel);
+    statisticsLayout->addRow("Count:", m_statsCountValueLabel);
+    statisticsLayout->addRow("Min:", m_statsMinValueLabel);
+    statisticsLayout->addRow("Max:", m_statsMaxValueLabel);
+    statisticsLayout->addRow("Mean:", m_statsMeanValueLabel);
+    statisticsLayout->addRow("Stddev:", m_statsStddevValueLabel);
 
     // Alerts section
     auto* alertsGroup = new QGroupBox("Alerts", rightPanel);
@@ -97,8 +116,10 @@ void MainWindow::createCentralWorkspace()
 void MainWindow::openFile()
 {
     const QString filePath = QFileDialog::getOpenFileName(
-        this, "Open file",
-        QString(), "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
+        this,
+        "Open file",
+        QString(),
+        "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
         );
 
     if (filePath.isEmpty()) {
@@ -111,11 +132,8 @@ void MainWindow::openFile()
     if (!result.success) {
         m_currentSession.reset();
         clearLoadedData();
+        resetStatisticsPanel();
         updateWindowTitle();
-
-        if (m_statisticsPlaceholderLabel != nullptr) {
-            m_statisticsPlaceholderLabel->setText("No statistics available");
-        }
 
         if (m_alertsPlaceholderLabel != nullptr) {
             m_alertsPlaceholderLabel->setText("No alerts available");
@@ -130,11 +148,8 @@ void MainWindow::openFile()
 
     m_currentSession = result.session;
     displaySessionData();
+    updateStatisticsPanel();
     updateWindowTitle();
-
-    if (m_statisticsPlaceholderLabel != nullptr) {
-        m_statisticsPlaceholderLabel->setText("Statistics panel is ready");
-    }
 
     if (m_alertsPlaceholderLabel != nullptr) {
         m_alertsPlaceholderLabel->setText("Alerts panel is ready");
@@ -190,7 +205,7 @@ void MainWindow::clearLoadedData()
         m_wavSamplesModel->clear();
     }
 
-    if (m_samplesTableView!= nullptr) {
+    if (m_samplesTableView != nullptr) {
         m_samplesTableView->setModel(m_csvSamplesModel);
     }
 }
@@ -222,6 +237,112 @@ void MainWindow::displaySessionData()
     }
 
     m_samplesTableView->resizeColumnsToContents();
+}
+
+void MainWindow::resetStatisticsPanel()
+{
+    if (m_statsFileTypeValueLabel != nullptr) {
+        m_statsFileTypeValueLabel->setText("-");
+    }
+
+    if (m_statsSampleRateValueLabel != nullptr) {
+        m_statsSampleRateValueLabel->setText("-");
+    }
+
+    if (m_statsChannelsValueLabel != nullptr) {
+        m_statsChannelsValueLabel->setText("-");
+    }
+
+    if (m_statsCountValueLabel != nullptr) {
+        m_statsCountValueLabel->setText("-");
+    }
+
+    if (m_statsMinValueLabel != nullptr) {
+        m_statsMinValueLabel->setText("-");
+    }
+
+    if (m_statsMaxValueLabel != nullptr) {
+        m_statsMaxValueLabel->setText("-");
+    }
+
+    if (m_statsMeanValueLabel != nullptr) {
+        m_statsMeanValueLabel->setText("-");
+    }
+
+    if (m_statsStddevValueLabel != nullptr) {
+        m_statsStddevValueLabel->setText("-");
+    }
+}
+
+void MainWindow::updateStatisticsPanel()
+{
+    resetStatisticsPanel();
+
+    if (!m_currentSession.has_value()) {
+        return;
+    }
+
+    switch (m_currentSession->kind) {
+    case SessionData::FileKind::Csv: {
+        m_statsFileTypeValueLabel->setText("CSV");
+
+        if (!m_currentSession->dataSet.has_value()) {
+            return;
+        }
+
+        const auto stats = m_currentSession->dataSet->stats();
+
+        m_statsCountValueLabel->setText(QString::number(static_cast<qulonglong>(stats.count)));
+        m_statsMinValueLabel->setText(QString::number(stats.min, 'g', 10));
+        m_statsMaxValueLabel->setText(QString::number(stats.max, 'g', 10));
+        m_statsMeanValueLabel->setText(QString::number(stats.mean, 'g', 10));
+        m_statsStddevValueLabel->setText(QString::number(stats.stddev, 'g', 10));
+
+        break;
+    }
+
+    case SessionData::FileKind::Wav: {
+        m_statsFileTypeValueLabel->setText("WAV");
+
+        if (!m_currentSession->wavData.has_value()) {
+            return;
+        }
+
+        const auto& wav = *m_currentSession->wavData;
+        const auto& samples = wav.samples;
+
+        m_statsSampleRateValueLabel->setText(QString::number(wav.sample_rate));
+        m_statsChannelsValueLabel->setText(QString::number(wav.channels));
+        m_statsCountValueLabel->setText(QString::number(static_cast<qulonglong>(samples.size())));
+
+        if (samples.empty()) {
+            return;
+        }
+
+        const auto [minIt, maxIt] = std::minmax_element(samples.begin(), samples.end());
+        const double sum = std::accumulate(samples.begin(), samples.end(), 0.0);
+        const double mean = sum / static_cast<double>(samples.size());
+
+        double sqSum = 0.0;
+        for (double sample : samples) {
+            const double diff = sample - mean;
+            sqSum += diff * diff;
+        }
+
+        const double stddev = std::sqrt(sqSum / static_cast<double>(samples.size()));
+
+        m_statsMinValueLabel->setText(QString::number(*minIt, 'g', 10));
+        m_statsMaxValueLabel->setText(QString::number(*maxIt, 'g', 10));
+        m_statsMeanValueLabel->setText(QString::number(mean, 'g', 10));
+        m_statsStddevValueLabel->setText(QString::number(stddev, 'g', 10));
+
+        break;
+    }
+
+    case SessionData::FileKind::Unknown:
+    default:
+        break;
+    }
 }
 
 } // namespace pdv
