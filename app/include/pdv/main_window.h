@@ -5,13 +5,16 @@
 
 #include <optional>
 
+class QAction;
+class QChartView;
 class QLabel;
+class QLineSeries;
 class QListWidget;
 class QTableView;
+class QValueAxis;
 
 #include "pdv/file_loader_service.h"
 #include "pdv/csv_samples_table_model.h"
-#include "pdv/wav_samples_table_model.h"
 #include "pdv/session_data.h"
 
 namespace pdv {
@@ -43,15 +46,24 @@ private:
     void resetAlertsPanel();
     void updateAlertsPanel();
 
+    void resetSignalPlot();
+    void updateSignalPlot();
+
     FileLoaderService m_fileLoaderService;
     std::optional<SessionData> m_currentSession;
 
     QAction* m_openAction = nullptr;
+    QAction* m_quickOpenAction = nullptr;
     QFutureWatcher<LoadResult>* m_loadWatcher = nullptr;
     bool m_isLoading = false;
 
     QLabel* m_dataPlaceholderLabel = nullptr;
     QTableView* m_samplesTableView = nullptr;
+
+    QChartView* m_signalChartView = nullptr;
+    QLineSeries* m_signalSeries = nullptr;
+    QValueAxis* m_signalAxisX = nullptr;
+    QValueAxis* m_signalAxisY = nullptr;
 
     QLabel* m_statsFileTypeValueLabel = nullptr;
     QLabel* m_statsSampleRateValueLabel = nullptr;
@@ -65,7 +77,6 @@ private:
     QListWidget* m_alertsListWidget = nullptr;
 
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
-    WavSamplesTableModel* m_wavSamplesModel = nullptr;
 };
 
 } // namespace pdv

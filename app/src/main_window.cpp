@@ -29,6 +29,13 @@
 #include <QAction>
 #include <QDir>
 
+#include <QtCharts/QChart>
+#include <QtCharts/QChartView>
+#include <QtCharts/QLineSeries>
+#include <QtCharts/QValueAxis>
+#include <QPointF>
+#include <QVector>
+
 namespace pdv {
 
 MainWindow::MainWindow()
@@ -36,7 +43,6 @@ MainWindow::MainWindow()
     resize(1000, 700);
 
     m_csvSamplesModel = new CsvSamplesTableModel(this);
-    m_wavSamplesModel = new WavSamplesTableModel(this);
     m_loadWatcher = new QFutureWatcher<LoadResult>(this);
 
     connect(m_loadWatcher, &QFutureWatcher<LoadResult>::finished,
@@ -47,6 +53,7 @@ MainWindow::MainWindow()
     createCentralWorkspace();
     resetStatisticsPanel();
     resetAlertsPanel();
+    resetSignalPlot();
     statusBar()->showMessage("Ready");
     updateWindowTitle();
 }
@@ -84,11 +91,35 @@ void MainWindow::createCentralWorkspace()
     m_samplesTableView->horizontalHeader()->setStretchLastSection(true);
     m_samplesTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
 
+    auto* signalChart = new QChart();
+    m_signalSeries = new QLineSeries();
+    signalChart->addSeries(m_signalSeries);
+    signalChart->legend()->hide();
+    signalChart->setTitle("Signal plot");
+
+    m_signalAxisX = new QValueAxis(this);
+    m_signalAxisY = new QValueAxis(this);
+
+    m_signalAxisX->setTitleText("Sample index");
+    m_signalAxisY->setTitleText("Amplitude");
+    m_signalAxisX->setLabelFormat("%.0f");
+    m_signalAxisY->setLabelFormat("%.3f");
+
+    signalChart->addAxis(m_signalAxisX, Qt::AlignBottom);
+    signalChart->addAxis(m_signalAxisY, Qt::AlignLeft);
+    m_signalSeries->attachAxis(m_signalAxisX);
+    m_signalSeries->attachAxis(m_signalAxisY);
+
+    m_signalChartView = new QChartView(signalChart, dataGroup);
+    m_signalChartView->setRenderHint(QPainter::Antialiasing, true);
+
     dataLayout->addWidget(m_dataPlaceholderLabel);
     dataLayout->addWidget(m_samplesTableView);
+    dataLayout->addWidget(m_signalChartView);
 
     m_dataPlaceholderLabel->show();
     m_samplesTableView->hide();
+    m_signalChartView->hide();
 
     // Right panel container
     auto* rightPanel = new QWidget(splitter);
@@ -135,6 +166,8 @@ void MainWindow::createCentralWorkspace()
 
     centralLayout->addWidget(splitter);
     setCentralWidget(centralWidget);
+
+    resetSignalPlot();
 }
 
 void MainWindow::openFile()
@@ -223,8 +256,16 @@ void MainWindow::setLoadingUiState(bool loading)
 {
     m_isLoading = loading;
 
+    if (loading) {
+        resetSignalPlot();
+    }
+
     if (m_openAction != nullptr) {
         m_openAction->setEnabled(!loading);
+    }
+
+    if (m_quickOpenAction != nullptr) {
+        m_quickOpenAction->setEnabled(!loading);
     }
 
     if (loading) {
@@ -238,6 +279,10 @@ void MainWindow::setLoadingUiState(bool loading)
 
         if (m_samplesTableView != nullptr) {
             m_samplesTableView->hide();
+        }
+
+        if (m_signalChartView != nullptr) {
+            m_signalChartView->hide();
         }
     } else {
         QApplication::restoreOverrideCursor();
@@ -263,13 +308,11 @@ void MainWindow::clearLoadedData()
         m_csvSamplesModel->clear();
     }
 
-    if (m_wavSamplesModel != nullptr) {
-        m_wavSamplesModel->clear();
-    }
+    resetSignalPlot();
 
     if (m_samplesTableView != nullptr) {
         m_samplesTableView->setModel(m_csvSamplesModel);
-        // m_samplesTableView->hide();
+        m_samplesTableView->hide();
     }
 
     if (m_dataPlaceholderLabel != nullptr) {
@@ -287,7 +330,7 @@ void MainWindow::displaySessionData()
 
     switch (m_currentSession->kind) {
     case SessionData::FileKind::Csv:
-        m_wavSamplesModel->clear();
+        resetSignalPlot();
         m_csvSamplesModel->setDataSet(m_currentSession->dataSet);
 
         if (m_samplesTableView != nullptr) {
@@ -300,6 +343,10 @@ void MainWindow::displaySessionData()
             m_samplesTableView->setColumnWidth(col, width + 20);
         }
 
+        if (m_signalChartView != nullptr) {
+            m_signalChartView->hide();
+        }
+
         if (m_dataPlaceholderLabel != nullptr) {
             m_dataPlaceholderLabel->hide();
         }
@@ -307,18 +354,15 @@ void MainWindow::displaySessionData()
 
     case SessionData::FileKind::Wav:
         m_csvSamplesModel->clear();
-        m_wavSamplesModel->clear();
 
         if (m_samplesTableView != nullptr) {
             m_samplesTableView->hide();
         }
 
+        updateSignalPlot();
+
         if (m_dataPlaceholderLabel != nullptr) {
-            m_dataPlaceholderLabel->setText(
-                "WAV sample table is hidden.\n"
-                "See statistics and spectral peak results on the right."
-                );
-            m_dataPlaceholderLabel->show();
+            m_dataPlaceholderLabel->hide();
         }
         break;
 
@@ -327,32 +371,6 @@ void MainWindow::displaySessionData()
         clearLoadedData();
         break;
     }
-
-    // if (!m_currentSession.has_value() || m_samplesTableView == nullptr) {
-    //     clearLoadedData();
-    //     return;
-    // }
-
-    // switch (m_currentSession->kind) {
-    // case SessionData::FileKind::Csv:
-    //     m_wavSamplesModel->clear();
-    //     m_csvSamplesModel->setDataSet(m_currentSession->dataSet);
-    //     m_samplesTableView->setModel(m_csvSamplesModel);
-    //     break;
-
-    // case SessionData::FileKind::Wav:
-    //     m_csvSamplesModel->clear();
-    //     m_wavSamplesModel->setWavData(m_currentSession->wavData);
-    //     m_samplesTableView->setModel(m_wavSamplesModel);
-    //     break;
-
-    // case SessionData::FileKind::Unknown:
-    // default:
-    //     clearLoadedData();
-    //     break;
-    // }
-
-    // m_samplesTableView->resizeColumnsToContents();
 }
 
 void MainWindow::createToolbar()
@@ -360,9 +378,9 @@ void MainWindow::createToolbar()
     auto* toolbar = addToolBar("Quick Access");
     toolbar->setMovable(false);
 
-    auto* quickOpenAction = toolbar->addAction("Quick Open");
+    m_quickOpenAction = toolbar->addAction("Quick Open");
 
-    connect(quickOpenAction, &QAction::triggered,
+    connect(m_quickOpenAction, &QAction::triggered,
             this, &MainWindow::openFileFromDataFolder);
 }
 
@@ -533,11 +551,12 @@ void MainWindow::updateAlertsPanel()
             const auto ts = std::chrono::system_clock::to_time_t(anomaly.timestamp);
 
             const QString timestampText = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts)).toString(Qt::ISODate);
-            // const QString timestampText = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts), Qt::UTC).toString(Qt::ISODate);
 
             const QString itemText = QString("time=%1 | sensor=%2 | value=%3 | z=%4")
-                                         .arg(timestampText).arg(QString::fromStdString(anomaly.sensor))
-                                         .arg(anomaly.value, 0, 'g', 10).arg(anomaly.zscore, 0, 'g', 10);
+                                         .arg(timestampText,
+                                              QString::fromStdString(anomaly.sensor),
+                                              QString::number(anomaly.value, 'g', 10),
+                                              QString::number(anomaly.zscore, 'g', 10));
 
             m_alertsListWidget->addItem(itemText);
         }
@@ -605,6 +624,101 @@ void MainWindow::updateAlertsPanel()
     case SessionData::FileKind::Unknown:
         m_alertsListWidget->addItem("No alerts available");
         break;
+    }
+}
+
+void MainWindow::resetSignalPlot()
+{
+    if (m_signalSeries != nullptr) {
+        m_signalSeries->clear();
+    }
+
+    if (m_signalAxisX != nullptr) {
+        m_signalAxisX->setRange(0.0, 1.0);
+    }
+
+    if (m_signalAxisY != nullptr) {
+        m_signalAxisY->setRange(-1.0, 1.0);
+    }
+
+    if (m_signalChartView != nullptr) {
+        m_signalChartView->hide();
+    }
+}
+
+void MainWindow::updateSignalPlot()
+{
+    resetSignalPlot();
+
+    if (!m_currentSession.has_value()) {
+        return;
+    }
+
+    if (m_currentSession->kind != SessionData::FileKind::Wav) {
+        return;
+    }
+
+    if (!m_currentSession->wavData.has_value()) {
+        return;
+    }
+
+    const auto& wav = *m_currentSession->wavData;
+    const auto& samples = wav.samples;
+
+    if (samples.empty()) {
+        return;
+    }
+
+    constexpr std::size_t kMaxPlotPoints = 2000;
+    const std::size_t total = samples.size();
+    const std::size_t step = std::max<std::size_t>(1, (total + kMaxPlotPoints - 1) / kMaxPlotPoints);
+
+    if (m_signalChartView != nullptr && m_signalChartView->chart() != nullptr) {
+        const QFileInfo fileInfo(m_currentSession->filePath);
+        m_signalChartView->chart()->setTitle(QString("Signal plot - %1").arg(fileInfo.fileName()));
+    }
+
+    QVector<QPointF> points;
+    points.reserve(static_cast<int>((total + step - 1) / step));
+
+    double minValue = samples.front();
+    double maxValue = samples.front();
+
+    for (std::size_t i = 0; i < total; i += step) {
+        const double y = samples[i];
+        points.append(QPointF(static_cast<qreal>(i), static_cast<qreal>(y)));
+
+        if (y < minValue) {
+            minValue = y;
+        }
+
+        if (y > maxValue) {
+            maxValue = y;
+        }
+    }
+
+    if (points.isEmpty()) {
+        return;
+    }
+
+    m_signalSeries->replace(points);
+
+    if (m_signalAxisX != nullptr) {
+        m_signalAxisX->setRange(0.0, static_cast<qreal>(total - 1));
+    }
+
+    if (m_signalAxisY != nullptr) {
+        if (minValue == maxValue) {
+            const double pad = (minValue == 0.0) ? 1.0 : std::abs(minValue) * 0.1;
+            m_signalAxisY->setRange(minValue - pad, maxValue + pad);
+        } else {
+            const double pad = (maxValue - minValue) * 0.05;
+            m_signalAxisY->setRange(minValue - pad, maxValue + pad);
+        }
+    }
+
+    if (m_signalChartView != nullptr) {
+        m_signalChartView->show();
     }
 }
 
