@@ -5,6 +5,7 @@
 #include <optional>
 
 class QLabel;
+class QListWidget;
 class QTableView;
 
 #include "pdv/file_loader_service.h"
@@ -32,9 +33,13 @@ private:
     void resetStatisticsPanel();
     void updateStatisticsPanel();
 
+    void resetAlertsPanel();
+    void updateAlertsPanel();
+
     FileLoaderService m_fileLoaderService;
     std::optional<SessionData> m_currentSession;
 
+    QLabel* m_dataPlaceholderLabel = nullptr;
     QTableView* m_samplesTableView = nullptr;
 
     QLabel* m_statsFileTypeValueLabel = nullptr;
@@ -46,7 +51,7 @@ private:
     QLabel* m_statsMeanValueLabel = nullptr;
     QLabel* m_statsStddevValueLabel = nullptr;
 
-    QLabel* m_alertsPlaceholderLabel = nullptr;
+    QListWidget* m_alertsListWidget = nullptr;
 
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
     WavSamplesTableModel* m_wavSamplesModel = nullptr;

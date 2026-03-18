@@ -1,21 +1,27 @@
 #include "pdv/main_window.h"
+#include <pdt/core/anomaly.h>
+#include <pdt/signal/fft.h>
+#include <pdt/signal/peak_detection.h>
+#include <pdt/signal/window.h>
 
 #include <algorithm>
 #include <cmath>
 #include <numeric>
 
+#include <QDateTime>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QGroupBox>
+#include <QHeaderView>
 #include <QLabel>
+#include <QListWidget>
 #include <QMenuBar>
+#include <QTableView>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QTableView>
-#include <QHeaderView>
-#include <QFormLayout>
 
 namespace pdv {
 
@@ -29,6 +35,7 @@ MainWindow::MainWindow()
     createMenu();
     createCentralWorkspace();
     resetStatisticsPanel();
+    resetAlertsPanel();
     statusBar()->showMessage("Ready");
     updateWindowTitle();
 }
@@ -54,6 +61,9 @@ void MainWindow::createCentralWorkspace()
     auto* dataGroup = new QGroupBox("Data", splitter);
     auto* dataLayout = new QVBoxLayout(dataGroup);
 
+    m_dataPlaceholderLabel = new QLabel("No data loaded", dataGroup);
+    m_dataPlaceholderLabel->setWordWrap(true);
+
     m_samplesTableView = new QTableView(dataGroup);
     m_samplesTableView->setModel(m_csvSamplesModel);
     m_samplesTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -63,7 +73,11 @@ void MainWindow::createCentralWorkspace()
     m_samplesTableView->horizontalHeader()->setStretchLastSection(true);
     m_samplesTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
 
+    dataLayout->addWidget(m_dataPlaceholderLabel);
     dataLayout->addWidget(m_samplesTableView);
+
+    m_dataPlaceholderLabel->show();
+    m_samplesTableView->hide();
 
     // Right panel container
     auto* rightPanel = new QWidget(splitter);
@@ -96,9 +110,8 @@ void MainWindow::createCentralWorkspace()
     auto* alertsGroup = new QGroupBox("Alerts", rightPanel);
     auto* alertsLayout = new QVBoxLayout(alertsGroup);
 
-    m_alertsPlaceholderLabel = new QLabel("No alerts available", alertsGroup);
-    m_alertsPlaceholderLabel->setWordWrap(true);
-    alertsLayout->addWidget(m_alertsPlaceholderLabel);
+    m_alertsListWidget = new QListWidget(alertsGroup);
+    alertsLayout->addWidget(m_alertsListWidget);
     alertsLayout->addStretch();
 
     rightLayout->addWidget(statisticsGroup);
@@ -115,12 +128,8 @@ void MainWindow::createCentralWorkspace()
 
 void MainWindow::openFile()
 {
-    const QString filePath = QFileDialog::getOpenFileName(
-        this,
-        "Open file",
-        QString(),
-        "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
-        );
+    const QString filePath = QFileDialog::getOpenFileName(this, "Open file", QString(),
+                                                          "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)");
 
     if (filePath.isEmpty()) {
         statusBar()->showMessage("Open file canceled", 2000);
@@ -133,11 +142,9 @@ void MainWindow::openFile()
         m_currentSession.reset();
         clearLoadedData();
         resetStatisticsPanel();
+        resetAlertsPanel();
         updateWindowTitle();
 
-        if (m_alertsPlaceholderLabel != nullptr) {
-            m_alertsPlaceholderLabel->setText("No alerts available");
-        }
 
         statusBar()->showMessage(
             QString("Failed to load file: %1").arg(result.errorMessage),
@@ -149,11 +156,8 @@ void MainWindow::openFile()
     m_currentSession = result.session;
     displaySessionData();
     updateStatisticsPanel();
+    updateAlertsPanel();
     updateWindowTitle();
-
-    if (m_alertsPlaceholderLabel != nullptr) {
-        m_alertsPlaceholderLabel->setText("Alerts panel is ready");
-    }
 
     const QFileInfo fileInfo(result.session.filePath);
 
@@ -208,11 +212,16 @@ void MainWindow::clearLoadedData()
     if (m_samplesTableView != nullptr) {
         m_samplesTableView->setModel(m_csvSamplesModel);
     }
+
+    if (m_dataPlaceholderLabel != nullptr) {
+        m_dataPlaceholderLabel->setText("No data loaded");
+        m_dataPlaceholderLabel->show();
+    }
 }
 
 void MainWindow::displaySessionData()
 {
-    if (!m_currentSession.has_value() || m_samplesTableView == nullptr) {
+    if (!m_currentSession.has_value()) {
         clearLoadedData();
         return;
     }
@@ -221,13 +230,33 @@ void MainWindow::displaySessionData()
     case SessionData::FileKind::Csv:
         m_wavSamplesModel->clear();
         m_csvSamplesModel->setDataSet(m_currentSession->dataSet);
-        m_samplesTableView->setModel(m_csvSamplesModel);
+
+        if (m_samplesTableView != nullptr) {
+            m_samplesTableView->setModel(m_csvSamplesModel);
+            m_samplesTableView->show();
+            m_samplesTableView->resizeColumnsToContents();
+        }
+
+        if (m_dataPlaceholderLabel != nullptr) {
+            m_dataPlaceholderLabel->hide();
+        }
         break;
 
     case SessionData::FileKind::Wav:
         m_csvSamplesModel->clear();
-        m_wavSamplesModel->setWavData(m_currentSession->wavData);
-        m_samplesTableView->setModel(m_wavSamplesModel);
+        m_wavSamplesModel->clear();
+
+        if (m_samplesTableView != nullptr) {
+            m_samplesTableView->hide();
+        }
+
+        if (m_dataPlaceholderLabel != nullptr) {
+            m_dataPlaceholderLabel->setText(
+                "WAV sample table is hidden.\n"
+                "See statistics and spectral peak results on the right."
+                );
+            m_dataPlaceholderLabel->show();
+        }
         break;
 
     case SessionData::FileKind::Unknown:
@@ -236,7 +265,31 @@ void MainWindow::displaySessionData()
         break;
     }
 
-    m_samplesTableView->resizeColumnsToContents();
+    // if (!m_currentSession.has_value() || m_samplesTableView == nullptr) {
+    //     clearLoadedData();
+    //     return;
+    // }
+
+    // switch (m_currentSession->kind) {
+    // case SessionData::FileKind::Csv:
+    //     m_wavSamplesModel->clear();
+    //     m_csvSamplesModel->setDataSet(m_currentSession->dataSet);
+    //     m_samplesTableView->setModel(m_csvSamplesModel);
+    //     break;
+
+    // case SessionData::FileKind::Wav:
+    //     m_csvSamplesModel->clear();
+    //     m_wavSamplesModel->setWavData(m_currentSession->wavData);
+    //     m_samplesTableView->setModel(m_wavSamplesModel);
+    //     break;
+
+    // case SessionData::FileKind::Unknown:
+    // default:
+    //     clearLoadedData();
+    //     break;
+    // }
+
+    // m_samplesTableView->resizeColumnsToContents();
 }
 
 void MainWindow::resetStatisticsPanel()
@@ -341,6 +394,123 @@ void MainWindow::updateStatisticsPanel()
 
     case SessionData::FileKind::Unknown:
     default:
+        break;
+    }
+}
+
+void MainWindow::resetAlertsPanel()
+{
+    if (m_alertsListWidget == nullptr) {
+        return;
+    }
+
+    m_alertsListWidget->clear();
+    m_alertsListWidget->addItem("No alerts available");
+}
+
+void MainWindow::updateAlertsPanel()
+{
+    resetAlertsPanel();
+
+    if (!m_currentSession.has_value() || m_alertsListWidget == nullptr) {
+        return;
+    }
+
+    m_alertsListWidget->clear();
+
+    switch (m_currentSession->kind) {
+    case SessionData::FileKind::Csv: {
+        if (!m_currentSession->dataSet.has_value()) {
+            m_alertsListWidget->addItem("No CSV dataset available");
+            return;
+        }
+
+        const auto summary = pdt::detect_zscore_global(*m_currentSession->dataSet, 3.0, 20);
+
+        if (summary.count == 0 || summary.top.empty()) {
+            m_alertsListWidget->addItem("No anomalies detected");
+            return;
+        }
+
+        m_alertsListWidget->addItem(
+            QString("Detected anomalies: %1").arg(static_cast<qulonglong>(summary.count))
+            );
+
+        for (const auto& anomaly : summary.top) {
+            const auto ts = std::chrono::system_clock::to_time_t(anomaly.timestamp);
+
+            const QString timestampText = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts)).toString(Qt::ISODate);
+            // const QString timestampText = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts), Qt::UTC).toString(Qt::ISODate);
+
+            const QString itemText = QString("time=%1 | sensor=%2 | value=%3 | z=%4")
+                                         .arg(timestampText).arg(QString::fromStdString(anomaly.sensor))
+                                         .arg(anomaly.value, 0, 'g', 10).arg(anomaly.zscore, 0, 'g', 10);
+
+            m_alertsListWidget->addItem(itemText);
+        }
+
+        break;
+    }
+
+    case SessionData::FileKind::Wav: {
+        if (!m_currentSession->wavData.has_value()) {
+            m_alertsListWidget->addItem("No WAV data available");
+            return;
+        }
+
+        const auto& wav = *m_currentSession->wavData;
+        const auto& samples = wav.samples;
+
+        if (samples.size() < 8 || wav.sample_rate == 0) {
+            m_alertsListWidget->addItem("Not enough samples for spectrum analysis");
+            return;
+        }
+
+        constexpr std::size_t kMaxSpectrumSamples = 4096;
+        const std::size_t n = std::min(samples.size(), kMaxSpectrumSamples);
+
+        std::vector<double> segment(samples.begin(), samples.begin() + static_cast<std::ptrdiff_t>(n));
+
+        const auto windowed = pdt::apply_window(segment, pdt::WindowType::Hann);
+        const auto spectrum = pdt::compute_spectrum(windowed, static_cast<double>(wav.sample_rate));
+
+        if (spectrum.frequencies.empty() || spectrum.magnitudes.empty()) {
+            m_alertsListWidget->addItem("Spectrum analysis failed");
+            return;
+        }
+
+        const auto peaks = pdt::detect_dominant_peaks(
+            spectrum,
+            0.20,
+            pdt::PeakDetectionMode::LocalMaxima,
+            10
+            );
+
+        if (peaks.empty()) {
+            m_alertsListWidget->addItem("No dominant spectral peaks detected");
+            return;
+        }
+
+        m_alertsListWidget->addItem(
+            QString("Detected spectral peaks: %1 (first %2 samples)")
+                .arg(static_cast<qulonglong>(peaks.size()))
+                .arg(static_cast<qulonglong>(n))
+            );
+
+        for (const auto& peak : peaks) {
+            const QString itemText = QString("bin=%1 | freq=%2 Hz | mag=%3")
+            .arg(static_cast<qulonglong>(peak.index))
+                .arg(peak.frequency, 0, 'g', 10)
+                .arg(peak.magnitude, 0, 'g', 10);
+
+            m_alertsListWidget->addItem(itemText);
+        }
+
+        break;
+    }
+
+    case SessionData::FileKind::Unknown:
+        m_alertsListWidget->addItem("No alerts available");
         break;
     }
 }
