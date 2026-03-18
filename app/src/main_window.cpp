@@ -8,6 +8,8 @@
 #include <cmath>
 #include <numeric>
 
+#include <QApplication>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QDateTime>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -31,6 +33,10 @@ MainWindow::MainWindow()
 
     m_csvSamplesModel = new CsvSamplesTableModel(this);
     m_wavSamplesModel = new WavSamplesTableModel(this);
+    m_loadWatcher = new QFutureWatcher<LoadResult>(this);
+
+    connect(m_loadWatcher, &QFutureWatcher<LoadResult>::finished,
+            this, &MainWindow::handleLoadFinished);
 
     createMenu();
     createCentralWorkspace();
@@ -42,10 +48,10 @@ MainWindow::MainWindow()
 
 void MainWindow::createMenu()
 {
-    auto fileMenu = menuBar()->addMenu("File");
-    auto openAction = fileMenu->addAction("Open");
+    auto* fileMenu = menuBar()->addMenu("File");
+    m_openAction = fileMenu->addAction("Open");
 
-    connect(openAction, &QAction::triggered,
+    connect(m_openAction, &QAction::triggered,
             this, &MainWindow::openFile);
 }
 
@@ -136,7 +142,29 @@ void MainWindow::openFile()
         return;
     }
 
-    const LoadResult result = m_fileLoaderService.loadFile(filePath);
+    loadFileAsync(filePath);
+}
+
+void MainWindow::loadFileAsync(const QString &filePath)
+{
+    if (m_isLoading) {
+        return;
+    }
+
+    setLoadingUiState(true);
+
+    auto future = QtConcurrent::run([this, filePath]() {
+        return m_fileLoaderService.loadFile(filePath);
+    });
+
+    m_loadWatcher->setFuture(future);
+}
+
+void MainWindow::handleLoadFinished()
+{
+    setLoadingUiState(false);
+
+    const LoadResult result = m_loadWatcher->result();
 
     if (!result.success) {
         m_currentSession.reset();
@@ -186,6 +214,31 @@ void MainWindow::openFile()
     }
 }
 
+void MainWindow::setLoadingUiState(bool loading)
+{
+    m_isLoading = loading;
+
+    if (m_openAction != nullptr) {
+        m_openAction->setEnabled(!loading);
+    }
+
+    if (loading) {
+        statusBar()->showMessage("Loading file...");
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+
+        if (m_dataPlaceholderLabel != nullptr) {
+            m_dataPlaceholderLabel->setText("Loading file...");
+            m_dataPlaceholderLabel->show();
+        }
+
+        if (m_samplesTableView != nullptr) {
+            m_samplesTableView->hide();
+        }
+    } else {
+        QApplication::restoreOverrideCursor();
+    }
+}
+
 void MainWindow::updateWindowTitle()
 {
     constexpr auto kAppTitle = "Process Data Viewer";
@@ -211,6 +264,7 @@ void MainWindow::clearLoadedData()
 
     if (m_samplesTableView != nullptr) {
         m_samplesTableView->setModel(m_csvSamplesModel);
+        // m_samplesTableView->hide();
     }
 
     if (m_dataPlaceholderLabel != nullptr) {
@@ -235,6 +289,10 @@ void MainWindow::displaySessionData()
             m_samplesTableView->setModel(m_csvSamplesModel);
             m_samplesTableView->show();
             m_samplesTableView->resizeColumnsToContents();
+
+            const int col = 0;
+            int width = m_samplesTableView->columnWidth(col);
+            m_samplesTableView->setColumnWidth(col, width + 20);
         }
 
         if (m_dataPlaceholderLabel != nullptr) {

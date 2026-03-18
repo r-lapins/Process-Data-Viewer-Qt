@@ -66,10 +66,19 @@ LoadResult FileLoaderService::loadCsv(const QString &filePath) const
 LoadResult FileLoaderService::loadWav(const QString &filePath) const
 {
     try {
+        const auto wavData = pdt::read_wav_pcm16_mono(filePath.toStdString());
+        if (!wavData.has_value()) {
+            return LoadResult{
+                .success = false,
+                .errorMessage = "Failed to read WAV file or unsupported format.",
+                .session = {}
+            };
+        }
+
         SessionData session;
         session.kind = SessionData::FileKind::Wav;
         session.filePath = filePath;
-        session.wavData = pdt::read_wav_pcm16_mono(filePath.toStdString());
+        session.wavData = std::move(wavData);
 
         return LoadResult{
             .success = true,

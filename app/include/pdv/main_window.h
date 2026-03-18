@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QFutureWatcher>
 
 #include <optional>
 
@@ -25,7 +26,10 @@ public:
 private:
     void createMenu();
     void createCentralWorkspace();
-    void openFile();
+    void openFile();    
+    void loadFileAsync(const QString& filePath);
+    void handleLoadFinished();
+    void setLoadingUiState(bool loading);
     void updateWindowTitle();
     void clearLoadedData();
     void displaySessionData();
@@ -38,6 +42,10 @@ private:
 
     FileLoaderService m_fileLoaderService;
     std::optional<SessionData> m_currentSession;
+
+    QAction* m_openAction = nullptr;
+    QFutureWatcher<LoadResult>* m_loadWatcher = nullptr;
+    bool m_isLoading = false;
 
     QLabel* m_dataPlaceholderLabel = nullptr;
     QTableView* m_samplesTableView = nullptr;

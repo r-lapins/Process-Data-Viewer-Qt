@@ -28,5 +28,6 @@ target_link_libraries(process_data_viewer
     PRIVATE
         Qt6::Widgets
         Qt6::Charts
+        Qt6::Concurrent
         pdt
 )
