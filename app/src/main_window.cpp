@@ -25,6 +25,10 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <QToolBar>
+#include <QAction>
+#include <QDir>
+
 namespace pdv {
 
 MainWindow::MainWindow()
@@ -39,6 +43,7 @@ MainWindow::MainWindow()
             this, &MainWindow::handleLoadFinished);
 
     createMenu();
+    createToolbar();
     createCentralWorkspace();
     resetStatisticsPanel();
     resetAlertsPanel();
@@ -348,6 +353,36 @@ void MainWindow::displaySessionData()
     // }
 
     // m_samplesTableView->resizeColumnsToContents();
+}
+
+void MainWindow::createToolbar()
+{
+    auto* toolbar = addToolBar("Quick Access");
+    toolbar->setMovable(false);
+
+    auto* quickOpenAction = toolbar->addAction("Quick Open");
+
+    connect(quickOpenAction, &QAction::triggered,
+            this, &MainWindow::openFileFromDataFolder);
+}
+
+void MainWindow::openFileFromDataFolder()
+{
+    const QString startDir = QDir::homePath() + "/home/lapin/Documents/QtProjekty/process_data_viewer_qt/examples/";
+
+    const QString filePath = QFileDialog::getOpenFileName(
+        this,
+        "Open file from data folder",
+        startDir,
+        "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
+        );
+
+    if (filePath.isEmpty()) {
+        statusBar()->showMessage("Open file canceled", 2000);
+        return;
+    }
+
+    loadFileAsync(filePath);
 }
 
 void MainWindow::resetStatisticsPanel()

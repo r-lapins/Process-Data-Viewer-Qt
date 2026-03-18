@@ -32,7 +32,10 @@ private:
     void setLoadingUiState(bool loading);
     void updateWindowTitle();
     void clearLoadedData();
-    void displaySessionData();
+    void displaySessionData();    
+
+    void createToolbar();
+    void openFileFromDataFolder();
 
     void resetStatisticsPanel();
     void updateStatisticsPanel();
