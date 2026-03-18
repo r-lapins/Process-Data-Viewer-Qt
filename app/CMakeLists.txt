@@ -3,7 +3,7 @@ set(SOURCES
     src/main_window.cpp
     src/file_loader_service.cpp
     src/csv_samples_table_model.cpp
-    src/wav_samples_table_model.cpp
+    src/analysis_tab.cpp
 )
 
 set(HEADERS
@@ -11,7 +11,7 @@ set(HEADERS
     include/pdv/session_data.h
     include/pdv/file_loader_service.h
     include/pdv/csv_samples_table_model.h
-    include/pdv/wav_samples_table_model.h
+    include/pdv/analysis_tab.h
 )
 
 qt_add_executable(process_data_viewer
