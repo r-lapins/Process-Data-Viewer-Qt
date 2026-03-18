@@ -123,7 +123,7 @@ void MainWindow::createCentralWorkspace()
 
     m_alertsListWidget = new QListWidget(alertsGroup);
     alertsLayout->addWidget(m_alertsListWidget);
-    alertsLayout->addStretch();
+    // alertsLayout->addStretch();
 
     rightLayout->addWidget(statisticsGroup);
     rightLayout->addWidget(alertsGroup);
@@ -368,7 +368,7 @@ void MainWindow::createToolbar()
 
 void MainWindow::openFileFromDataFolder()
 {
-    const QString startDir = QDir::homePath() + "/home/lapin/Documents/QtProjekty/process_data_viewer_qt/examples/";
+    const QString startDir = QDir::homePath() + "/Documents/QtProjekty/process_data_viewer_qt/examples/";
 
     const QString filePath = QFileDialog::getOpenFileName(
         this,
@@ -575,8 +575,8 @@ void MainWindow::updateAlertsPanel()
         const auto peaks = pdt::detect_dominant_peaks(
             spectrum,
             0.20,
-            pdt::PeakDetectionMode::LocalMaxima,
-            10
+            pdt::PeakDetectionMode::ThresholdOnly,
+            30
             );
 
         if (peaks.empty()) {
