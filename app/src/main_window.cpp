@@ -136,8 +136,14 @@ void MainWindow::handleLoadFinished()
         return;
     }
 
-    auto* tab = new AnalysisTab(result.session, m_tabWidget);
+    auto* tab = AnalysisTab::create(result.session, m_tabWidget);
+    if (tab == nullptr) {
+        statusBar()->showMessage("Failed to create analysis tab.", 5000);
+        return;
+    }
+
     const int index = m_tabWidget->addTab(tab, tab->tabTitle());
+
     m_tabWidget->setCurrentIndex(index);
 
     statusBar()->showMessage(

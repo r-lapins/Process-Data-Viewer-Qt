@@ -2,14 +2,6 @@
 
 #include <QWidget>
 
-class QLabel;
-class QListWidget;
-class QTableView;
-class QChartView;
-class QLineSeries;
-class QValueAxis;
-
-#include "pdv/csv_samples_table_model.h"
 #include "pdv/session_data.h"
 
 namespace pdv {
@@ -20,44 +12,15 @@ class AnalysisTab : public QWidget
 
 public:
     explicit AnalysisTab(const SessionData& session, QWidget* parent = nullptr);
+    ~AnalysisTab() override = default;
 
     QString tabTitle() const;
+    const SessionData& session() const noexcept;
 
-private:
-    void createUi();
-    void displaySessionData();
+    static AnalysisTab* create(const SessionData& session, QWidget* parent = nullptr);
 
-    void resetStatisticsPanel();
-    void updateStatisticsPanel();
-
-    void resetAlertsPanel();
-    void updateAlertsPanel();
-
-    void resetSignalPlot();
-    void updateSignalPlot();
-
+protected:
     SessionData m_session;
-
-    QLabel* m_dataPlaceholderLabel = nullptr;
-    QTableView* m_samplesTableView = nullptr;
-
-    QChartView* m_signalChartView = nullptr;
-    QLineSeries* m_signalSeries = nullptr;
-    QValueAxis* m_signalAxisX = nullptr;
-    QValueAxis* m_signalAxisY = nullptr;
-
-    QLabel* m_statsFileTypeValueLabel = nullptr;
-    QLabel* m_statsSampleRateValueLabel = nullptr;
-    QLabel* m_statsChannelsValueLabel = nullptr;
-    QLabel* m_statsCountValueLabel = nullptr;
-    QLabel* m_statsMinValueLabel = nullptr;
-    QLabel* m_statsMaxValueLabel = nullptr;
-    QLabel* m_statsMeanValueLabel = nullptr;
-    QLabel* m_statsStddevValueLabel = nullptr;
-
-    QListWidget* m_alertsListWidget = nullptr;
-
-    CsvSamplesTableModel* m_csvSamplesModel = nullptr;
 };
 
 } // namespace pdv
