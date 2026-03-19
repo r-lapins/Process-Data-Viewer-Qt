@@ -131,6 +131,16 @@ private:
 
     QComboBox* m_binsComboBox = nullptr;
     QStackedWidget* m_binsInputStack = nullptr;
+
+    QChartView* createSpectrumPlot(QWidget* parent);
+
+    void resetSpectrumPlot();
+    void updateSpectrumPlot(const AnalysisResult& result);
+
+    QLineSeries* m_spectrumSeries = nullptr;
+    QValueAxis* m_spectrumAxisX = nullptr;
+    QValueAxis* m_spectrumAxisY = nullptr;
+    QChartView* m_spectrumChartView = nullptr;
 };
 
 } // namespace pdv

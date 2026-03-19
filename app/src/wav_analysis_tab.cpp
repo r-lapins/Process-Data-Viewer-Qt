@@ -53,17 +53,27 @@ void WavAnalysisTab::createUi()
     auto* topWidget = new QWidget(verticalSplitter);
     auto* topLayout = new QHBoxLayout(topWidget);
     topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(10);
 
-    topLayout->addWidget(createControlsPanel(topWidget), 2);
-    topLayout->addWidget(createStatisticsPanel(topWidget), 2);
-    topLayout->addWidget(createAlertsPanel(topWidget), 3);
+    topLayout->addStretch();
+    topLayout->addWidget(createControlsPanel(topWidget));
+    topLayout->addWidget(createStatisticsPanel(topWidget));
+    topLayout->addWidget(createAlertsPanel(topWidget));
+    topLayout->addStretch();
 
     // ===== BOTTOM
     auto* bottomWidget = new QWidget(verticalSplitter);
     auto* bottomLayout = new QVBoxLayout(bottomWidget);
     bottomLayout->setContentsMargins(0, 0, 0, 0);
 
-    bottomLayout->addWidget(createSignalPlot(bottomWidget));
+    // == PLOTS-SPLITTER
+    auto* plotsSplitter = new QSplitter(Qt::Vertical, bottomWidget);
+    plotsSplitter->addWidget(createSignalPlot(plotsSplitter));
+    plotsSplitter->addWidget(createSpectrumPlot(plotsSplitter));
+    plotsSplitter->setStretchFactor(0, 1);
+    plotsSplitter->setStretchFactor(1, 1);
+
+    bottomLayout->addWidget(plotsSplitter);
 
     // ===== SPLITTER
     verticalSplitter->addWidget(topWidget);
@@ -129,6 +139,8 @@ QWidget* WavAnalysisTab::createStatisticsPanel(QWidget* parent)
     signalLayout->addWidget(signalRightWidget);
 
     statsLayout->addRow(signalGroup);
+
+    statsGroup->setFixedWidth(250);
 
     return statsGroup;
 }
@@ -201,6 +213,8 @@ QWidget* WavAnalysisTab::createControlsPanel(QWidget* parent)
     updateBinsInputMode();
     updateFromSpinRange();
 
+    controlsGroup->setFixedWidth(300);
+
     return controlsGroup;
 }
 
@@ -212,36 +226,9 @@ QWidget* WavAnalysisTab::createAlertsPanel(QWidget* parent)
     m_alertsListWidget = new QListWidget(alertsGroup);
     alertsLayout->addWidget(m_alertsListWidget);
 
+    alertsGroup->setFixedWidth(350);
+
     return alertsGroup;
-}
-
-QChartView* WavAnalysisTab::createSignalPlot(QWidget* parent)
-{
-    auto* chart = new QChart();
-    m_signalSeries = new QLineSeries();
-    chart->addSeries(m_signalSeries);
-    chart->legend()->hide();
-    chart->setTitle("Signal");
-
-    m_signalAxisX = new QValueAxis(this);
-    m_signalAxisY = new QValueAxis(this);
-
-    m_signalAxisX->setTitleText("Sample index");
-    m_signalAxisY->setTitleText("Amplitude");
-    m_signalAxisX->setLabelFormat("%.0f");
-    m_signalAxisY->setLabelFormat("%.3f");
-
-    chart->addAxis(m_signalAxisX, Qt::AlignBottom);
-    chart->addAxis(m_signalAxisY, Qt::AlignLeft);
-    m_signalSeries->attachAxis(m_signalAxisX);
-    m_signalSeries->attachAxis(m_signalAxisY);
-
-    m_signalChartView = new QChartView(chart, parent);
-    m_signalChartView->setRenderHint(QPainter::Antialiasing);
-
-    m_signalChartView->setMinimumHeight(250);
-
-    return m_signalChartView;
 }
 
 void WavAnalysisTab::connectControls()
@@ -267,6 +254,7 @@ void WavAnalysisTab::recomputeAnalysis()
     updateStatisticsPanel(result);
     updateAlertsPanel(result);
     updateSignalPlot(result);
+    updateSpectrumPlot(result);
     updateFromSpinStep();
     updateBinsInputMode();
     updateFromSpinRange();
@@ -621,6 +609,79 @@ void WavAnalysisTab::updateAlertsPanel(const AnalysisResult& result)
     }
 }
 
+WavAnalysisTab::SpectrumAlgorithm WavAnalysisTab::selectedAlgorithm() const
+{
+    return static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+}
+
+QString WavAnalysisTab::toString(SpectrumAlgorithm algorithm) const
+{
+    switch (algorithm) {
+    case SpectrumAlgorithm::Dft: return "DFT";
+    case SpectrumAlgorithm::Fft: return "FFT";
+    }
+    return "-";
+}
+
+QString WavAnalysisTab::toString(pdt::WindowType window) const
+{
+    switch (window) {
+    case pdt::WindowType::Hann: return "Hann";
+    case pdt::WindowType::Hamming: return "Hamming";
+    }
+    return "-";
+}
+
+QString WavAnalysisTab::toString(pdt::PeakDetectionMode mode) const
+{
+    switch (mode) {
+    case pdt::PeakDetectionMode::ThresholdOnly: return "Threshold-Only";
+    case pdt::PeakDetectionMode::LocalMaxima: return "Local-Maxima";
+    }
+    return "-";
+}
+
+bool WavAnalysisTab::useWindow() const
+{
+    return m_windowComboBox->currentData().toInt() != -1;
+}
+
+void WavAnalysisTab::updateFromSpinStep()
+{
+    const std::size_t bins = selectedBins();
+    const int step = std::max<int>(1, static_cast<int>(bins / 10));
+    m_fromSpinBox->setSingleStep(step);
+}
+
+QChartView* WavAnalysisTab::createSignalPlot(QWidget* parent)
+{
+    auto* chart = new QChart();
+    m_signalSeries = new QLineSeries();
+    chart->addSeries(m_signalSeries);
+    chart->legend()->hide();
+    chart->setTitle("Signal");
+
+    m_signalAxisX = new QValueAxis(this);
+    m_signalAxisY = new QValueAxis(this);
+
+    m_signalAxisX->setTitleText("Sample index");
+    m_signalAxisY->setTitleText("Amplitude");
+    m_signalAxisX->setLabelFormat("%.0f");
+    m_signalAxisY->setLabelFormat("%.3f");
+
+    chart->addAxis(m_signalAxisX, Qt::AlignBottom);
+    chart->addAxis(m_signalAxisY, Qt::AlignLeft);
+    m_signalSeries->attachAxis(m_signalAxisX);
+    m_signalSeries->attachAxis(m_signalAxisY);
+
+    m_signalChartView = new QChartView(chart, parent);
+    m_signalChartView->setRenderHint(QPainter::Antialiasing);
+
+    m_signalChartView->setMinimumHeight(250);
+
+    return m_signalChartView;
+}
+
 void WavAnalysisTab::resetSignalPlot()
 {
     m_signalSeries->clear();
@@ -676,48 +737,102 @@ void WavAnalysisTab::updateSignalPlot(const AnalysisResult& result)
     }
 }
 
-WavAnalysisTab::SpectrumAlgorithm WavAnalysisTab::selectedAlgorithm() const
+QChartView* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
 {
-    return static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    auto* chart = new QChart();
+    m_spectrumSeries = new QLineSeries();
+    chart->addSeries(m_spectrumSeries);
+    chart->legend()->hide();
+    chart->setTitle("Spectrum");
+
+    m_spectrumAxisX = new QValueAxis(this);
+    m_spectrumAxisY = new QValueAxis(this);
+
+    m_spectrumAxisX->setTitleText("Frequency [Hz]");
+    m_spectrumAxisY->setTitleText("Magnitude");
+    m_spectrumAxisX->setLabelFormat("%.0f");
+    m_spectrumAxisY->setLabelFormat("%.0f");
+
+    chart->addAxis(m_spectrumAxisX, Qt::AlignBottom);
+    chart->addAxis(m_spectrumAxisY, Qt::AlignLeft);
+    m_spectrumSeries->attachAxis(m_spectrumAxisX);
+    m_spectrumSeries->attachAxis(m_spectrumAxisY);
+
+    m_spectrumChartView = new QChartView(chart, parent);
+    m_spectrumChartView->setRenderHint(QPainter::Antialiasing);
+    m_spectrumChartView->setMinimumHeight(250);
+
+    return m_spectrumChartView;
 }
 
-QString WavAnalysisTab::toString(SpectrumAlgorithm algorithm) const
+void WavAnalysisTab::resetSpectrumPlot()
 {
-    switch (algorithm) {
-    case SpectrumAlgorithm::Dft: return "DFT";
-    case SpectrumAlgorithm::Fft: return "FFT";
+    m_spectrumSeries->clear();
+    m_spectrumAxisX->setRange(0, 1);
+    m_spectrumAxisY->setRange(0, 1);
+}
+
+void WavAnalysisTab::updateSpectrumPlot(const AnalysisResult& result)
+{
+    resetSpectrumPlot();
+
+    const auto& freqs = result.spectrum.frequencies;
+    const auto& mags = result.spectrum.magnitudes;
+
+    if (freqs.empty() || mags.empty() || freqs.size() != mags.size()) {
+        return;
     }
-    return "-";
-}
 
-QString WavAnalysisTab::toString(pdt::WindowType window) const
-{
-    switch (window) {
-    case pdt::WindowType::Hann: return "Hann";
-    case pdt::WindowType::Hamming: return "Hamming";
+    if (m_spectrumChartView != nullptr && m_spectrumChartView->chart() != nullptr) {
+        const QFileInfo fileInfo(m_session.filePath);
+        m_spectrumChartView->chart()->setTitle(QString("Spectrum plot - %1").arg(fileInfo.fileName()));
     }
-    return "-";
-}
 
-QString WavAnalysisTab::toString(pdt::PeakDetectionMode mode) const
-{
-    switch (mode) {
-    case pdt::PeakDetectionMode::ThresholdOnly: return "Threshold-Only";
-    case pdt::PeakDetectionMode::LocalMaxima: return "Local-Maxima";
+    constexpr std::size_t kMaxPoints = 4000;
+    const std::size_t step =
+        std::max<std::size_t>(1, (freqs.size() + kMaxPoints - 1) / kMaxPoints);
+
+    QVector<QPointF> pts;
+    pts.reserve(static_cast<int>((freqs.size() + step - 1) / step));
+
+    double minX = freqs.front();
+    double maxX = freqs.front();
+    double minY = mags.front();
+    double maxY = mags.front();
+
+    for (std::size_t i = 0; i < freqs.size(); i += step) {
+        const double x = freqs[i];
+        const double y = mags[i];
+
+        pts.append(QPointF(static_cast<qreal>(x), static_cast<qreal>(y)));
+
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
     }
-    return "-";
-}
 
-bool WavAnalysisTab::useWindow() const
-{
-    return m_windowComboBox->currentData().toInt() != -1;
-}
+    if (pts.isEmpty()) {
+        return;
+    }
 
-void WavAnalysisTab::updateFromSpinStep()
-{
-    const std::size_t bins = selectedBins();
-    const int step = std::max<int>(1, static_cast<int>(bins / 10));
-    m_fromSpinBox->setSingleStep(step);
+    m_spectrumSeries->replace(pts);
+
+    if (minX == maxX) {
+        const double right = (maxX == 0.0) ? 1.0 : maxX * 1;
+        m_spectrumAxisX->setRange(0.0, right);
+    } else {
+        const double padX = (maxX - minX) * 0;
+        m_spectrumAxisX->setRange(0.0, maxX + padX);
+    }
+
+    if (minY == maxY) {
+        const double padY = (minY == 0.0) ? 1.0 : std::abs(minY) * 0.1;
+        m_spectrumAxisY->setRange(minY - padY, maxY + padY);
+    } else {
+        const double padY = (maxY - minY) * 0.05;
+        m_spectrumAxisY->setRange(minY - padY, maxY + padY);
+    }
 }
 
 } // namespace pdv
