@@ -16,6 +16,7 @@ namespace pdv {
 MainWindow::MainWindow()
 {
     resize(1000, 700);
+    setMaximumHeight(1000);
 
     m_loadWatcher = new QFutureWatcher<LoadResult>(this);
     connect(m_loadWatcher, &QFutureWatcher<LoadResult>::finished,
