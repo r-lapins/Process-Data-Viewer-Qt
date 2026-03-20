@@ -9,7 +9,6 @@ class QTableView;
 class QDoubleSpinBox;
 class QSpinBox;
 class QPushButton;
-class QDateTimeEdit;
 class QCheckBox;
 class QComboBox;
 class QDateEdit;
@@ -44,14 +43,14 @@ private:
 
     void connectControls();
 
-    void displaySessionData();
+    void displaySessionData(const pdt::DataSet& filtered);
     void recomputeAnalysis();
 
     void resetStatisticsPanel();
-    void updateStatisticsPanel();
+    void updateStatisticsPanel(const pdt::DataSet& filtered);
 
     void resetAlertsPanel();
-    void updateAlertsPanel();
+    void updateAlertsPanel(const pdt::DataSet& filtered);
 
     void populateSensorOptions();
     void initializeDateControls();
@@ -78,7 +77,6 @@ private:
     QPushButton* m_recomputeButton = nullptr;
 
     QLabel* m_statsFileTypeValueLabel = nullptr;
-    QLabel* m_statsCountValueLabel = nullptr;
     QLabel* m_statsMinValueLabel = nullptr;
     QLabel* m_statsMaxValueLabel = nullptr;
     QLabel* m_statsMeanValueLabel = nullptr;

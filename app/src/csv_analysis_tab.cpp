@@ -56,12 +56,12 @@ void CsvAnalysisTab::createUi()
 
     rightPanel->setFixedWidth(400);
 
+    rootLayout->setSizeConstraint(QLayout::SetMinimumSize);
+
     populateSensorOptions();
     initializeDateControls();
     connectControls();
-    displaySessionData();
-    updateStatisticsPanel();
-    updateAlertsPanel();
+    recomputeAnalysis();
 }
 
 QWidget* CsvAnalysisTab::createDataPanel(QWidget* parent)
@@ -260,7 +260,7 @@ void CsvAnalysisTab::resetStatisticsPanel()
     m_statsDetectedAnomaliesValueLabel->setText("-");
 }
 
-void CsvAnalysisTab::updateStatisticsPanel()
+void CsvAnalysisTab::updateStatisticsPanel(const pdt::DataSet& filtered)
 {
     resetStatisticsPanel();
 
@@ -269,7 +269,6 @@ void CsvAnalysisTab::updateStatisticsPanel()
     }
 
     const auto settings = currentSettings();
-    const auto filtered = m_session.dataSet->filter(currentFilterOptions());
     const auto stats = filtered.stats();
     const auto summary = pdt::detect_zscore_global(filtered, settings.zThreshold, settings.topN);
 
@@ -338,7 +337,7 @@ void CsvAnalysisTab::resetAlertsPanel()
     m_alertsListWidget->addItem("No alerts");
 }
 
-void CsvAnalysisTab::updateAlertsPanel()
+void CsvAnalysisTab::updateAlertsPanel(const pdt::DataSet& filtered)
 {
     resetAlertsPanel();
 
@@ -353,7 +352,6 @@ void CsvAnalysisTab::updateAlertsPanel()
     }
 
     const auto settings = currentSettings();
-    const auto filtered = m_session.dataSet->filter(currentFilterOptions());
     const auto summary = pdt::detect_zscore_global(filtered, settings.zThreshold, settings.topN);
 
     m_alertsListWidget->clear();
@@ -483,13 +481,11 @@ void CsvAnalysisTab::connectControls()
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);
 }
 
-void CsvAnalysisTab::displaySessionData()
+void CsvAnalysisTab::displaySessionData(const pdt::DataSet& filtered)
 {
     if (!m_session.dataSet.has_value()) {
         return;
     }
-
-    const auto filtered = m_session.dataSet->filter(currentFilterOptions());
 
     m_csvSamplesModel->setDataSet(filtered);
     m_samplesTableView->show();
@@ -518,13 +514,15 @@ void CsvAnalysisTab::recomputeAnalysis()
         }
 
         resetStatisticsPanel();
-        updateAlertsPanel();
+        updateAlertsPanel(pdt::DataSet{});
         return;
     }
 
-    displaySessionData();
-    updateStatisticsPanel();
-    updateAlertsPanel();
+    const auto filtered = m_session.dataSet->filter(currentFilterOptions());
+
+    displaySessionData(filtered);
+    updateStatisticsPanel(filtered);
+    updateAlertsPanel(filtered);
 }
 
 pdt::FilterOptions CsvAnalysisTab::currentFilterOptions() const
