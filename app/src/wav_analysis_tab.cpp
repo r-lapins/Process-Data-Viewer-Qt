@@ -35,27 +35,24 @@ void WavAnalysisTab::createUi()
     auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(6, 6, 6, 6);
 
-    // TOP / BOTTOM
-    auto* verticalSplitter = new QSplitter(Qt::Vertical, this);
-
     // ===== TOP
-    auto* topWidget = new QWidget(verticalSplitter);
+    auto* topWidget = new QWidget(this);
     auto* topLayout = new QHBoxLayout(topWidget);
     topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(10);
 
-    topLayout->addStretch();
-    topLayout->addWidget(createControlsPanel(topWidget));
-    topLayout->addWidget(createStatisticsPanel(topWidget));
-    topLayout->addWidget(createAlertsPanel(topWidget));
-    topLayout->addStretch();
+    topLayout->addWidget(createControlsPanel(topWidget), 0, Qt::AlignTop);
+    topLayout->addWidget(createStatisticsPanel(topWidget), 0, Qt::AlignTop);
+    topLayout->addWidget(createAlertsPanel(topWidget), 0, Qt::AlignTop);
+    topLayout->setAlignment(Qt::AlignHCenter);
+
+    topWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     // ===== BOTTOM
-    auto* bottomWidget = new QWidget(verticalSplitter);
+    auto* bottomWidget = new QWidget(this);
     auto* bottomLayout = new QVBoxLayout(bottomWidget);
     bottomLayout->setContentsMargins(0, 0, 0, 0);
 
-    // == PLOTS-SPLITTER
     auto* plotsSplitter = new QSplitter(Qt::Vertical, bottomWidget);
     plotsSplitter->addWidget(createSignalPlot(plotsSplitter));
     plotsSplitter->addWidget(createSpectrumPlot(plotsSplitter));
@@ -64,13 +61,9 @@ void WavAnalysisTab::createUi()
 
     bottomLayout->addWidget(plotsSplitter);
 
-    // ===== SPLITTER
-    verticalSplitter->addWidget(topWidget);
-    verticalSplitter->addWidget(bottomWidget);
-    verticalSplitter->setStretchFactor(0, 2);
-    verticalSplitter->setStretchFactor(1, 3);
-
-    rootLayout->addWidget(verticalSplitter);
+    rootLayout->addWidget(topWidget);
+    rootLayout->addWidget(bottomWidget, 1);
+    rootLayout->setSizeConstraint(QLayout::SetMinimumSize);
 }
 
 QWidget* WavAnalysisTab::createStatisticsPanel(QWidget* parent)
@@ -130,6 +123,8 @@ QWidget* WavAnalysisTab::createStatisticsPanel(QWidget* parent)
     statsLayout->addRow(signalGroup);
 
     statsGroup->setFixedWidth(250);
+    statsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    statsGroup->setMaximumHeight(statsGroup->sizeHint().height());
 
     return statsGroup;
 }
@@ -205,6 +200,7 @@ QWidget* WavAnalysisTab::createControlsPanel(QWidget* parent)
     updateFromSpinRange();
 
     controlsGroup->setFixedWidth(300);
+    controlsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     return controlsGroup;
 }
@@ -218,6 +214,8 @@ QWidget* WavAnalysisTab::createAlertsPanel(QWidget* parent)
     alertsLayout->addWidget(m_alertsListWidget);
 
     alertsGroup->setFixedWidth(350);
+    alertsGroup->setFixedHeight(375);
+    alertsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     return alertsGroup;
 }
