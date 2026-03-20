@@ -54,8 +54,15 @@ void WavAnalysisTab::createUi()
     bottomLayout->setContentsMargins(0, 0, 0, 0);
 
     auto* plotsSplitter = new QSplitter(Qt::Vertical, bottomWidget);
-    plotsSplitter->addWidget(createSignalPlot(plotsSplitter));
-    plotsSplitter->addWidget(createSpectrumPlot(plotsSplitter));
+
+    m_signalPlotContainer = createSignalPlot(m_plotsSplitter);
+    m_spectrumPlotContainer = createSpectrumPlot(m_plotsSplitter);
+
+    m_signalPlotContainer->setVisible(false);
+    m_spectrumPlotContainer->setVisible(false);
+
+    plotsSplitter->addWidget(m_signalPlotContainer);
+    plotsSplitter->addWidget(m_spectrumPlotContainer);
     plotsSplitter->setStretchFactor(0, 1);
     plotsSplitter->setStretchFactor(1, 1);
 
@@ -148,6 +155,21 @@ QWidget* WavAnalysisTab::createControlsPanel(QWidget* parent)
     m_autoUpdateCheckBox = new QCheckBox("Auto update", controlsGroup);
     m_recomputeButton = new QPushButton("Recompute", controlsGroup);
 
+    m_showSignalButton = new QPushButton("Signal", controlsGroup);
+    m_showSpectrumButton = new QPushButton("Spectrum", controlsGroup);
+
+    m_showSignalButton->setCheckable(true);
+    m_showSpectrumButton->setCheckable(true);
+    m_showSignalButton->setChecked(false);
+    m_showSpectrumButton->setChecked(false);
+
+    auto* plotToggleWidget = new QWidget(controlsGroup);
+    auto* plotToggleLayout = new QHBoxLayout(plotToggleWidget);
+    plotToggleLayout->setContentsMargins(0, 0, 0, 0);
+    plotToggleLayout->setSpacing(6);
+    plotToggleLayout->addWidget(m_showSignalButton);
+    plotToggleLayout->addWidget(m_showSpectrumButton);
+
     int sampleCount = 0;
     if (m_session.wavData.has_value()) {
         sampleCount = static_cast<int>(m_session.wavData->samples.size());
@@ -192,6 +214,7 @@ QWidget* WavAnalysisTab::createControlsPanel(QWidget* parent)
     controlsLayout->addRow("From sample:", m_fromSpinBox);
     controlsLayout->addRow("", m_recomputeButton);
     controlsLayout->addRow("", m_autoUpdateCheckBox);
+    controlsLayout->addRow("Plots:", plotToggleWidget);
 
     m_recomputeButton->setEnabled(!m_autoUpdateCheckBox->isChecked());
 
@@ -234,6 +257,9 @@ void WavAnalysisTab::connectControls()
     connect(m_topPeaksSpinBox, &QSpinBox::valueChanged, this, &WavAnalysisTab::triggerAutoRecompute);
     connect(m_fromSpinBox, &QSpinBox::valueChanged, this, &WavAnalysisTab::triggerAutoRecompute);
     connect(m_binsSpinBox, &QSpinBox::valueChanged, this, &WavAnalysisTab::triggerAutoRecompute);
+
+    connect(m_showSignalButton, &QPushButton::toggled, this, &WavAnalysisTab::updatePlotVisibility);
+    connect(m_showSpectrumButton, &QPushButton::toggled, this, &WavAnalysisTab::updatePlotVisibility);
 }
 
 void WavAnalysisTab::recomputeAnalysis()
@@ -524,6 +550,36 @@ void WavAnalysisTab::updateFromSpinStep()
     const std::size_t bins = selectedBins();
     const int step = std::max<int>(1, static_cast<int>(bins / 10));
     m_fromSpinBox->setSingleStep(step);
+}
+
+void WavAnalysisTab::updatePlotVisibility()
+{
+    if (m_signalPlotContainer != nullptr) {
+        m_signalPlotContainer->setVisible(m_showSignalButton != nullptr && m_showSignalButton->isChecked());
+    }
+
+    if (m_spectrumPlotContainer != nullptr) {
+        m_spectrumPlotContainer->setVisible(m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
+    }
+
+    if (m_plotsSplitter == nullptr) {
+        return;
+    }
+
+    const bool signalVisible =
+        (m_showSignalButton != nullptr && m_showSignalButton->isChecked());
+    const bool spectrumVisible =
+        (m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
+
+    if (signalVisible && spectrumVisible) {
+        m_plotsSplitter->setSizes({1, 1});
+    } else if (signalVisible) {
+        m_plotsSplitter->setSizes({1, 0});
+    } else if (spectrumVisible) {
+        m_plotsSplitter->setSizes({0, 1});
+    } else {
+        m_plotsSplitter->setSizes({0, 0});
+    }
 }
 
 QWidget* WavAnalysisTab::createSignalPlot(QWidget* parent)

@@ -11,6 +11,7 @@ class QSpinBox;
 class QDoubleSpinBox;
 class QCheckBox;
 class QStackedWidget;
+class QSplitter;
 
 namespace pdv {
 
@@ -62,6 +63,9 @@ private:
     void updateFromSpinRange();
     void updateFromSpinStep();
 
+    void updatePlotVisibility();
+    QWidget* createPlotVisibilityToolbar(QWidget* parent);
+
     QString toString(SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;
     QString toString(pdt::PeakDetectionMode mode) const;
@@ -99,6 +103,13 @@ private:
 
     SignalChartWidget* m_signalChartWidget = nullptr;
     SpectrumChartWidget* m_spectrumChartWidget = nullptr;
+
+    QPushButton* m_showSignalButton = nullptr;
+    QPushButton* m_showSpectrumButton = nullptr;
+
+    QWidget* m_signalPlotContainer = nullptr;
+    QWidget* m_spectrumPlotContainer = nullptr;
+    QSplitter* m_plotsSplitter = nullptr;
 };
 
 } // namespace pdv
