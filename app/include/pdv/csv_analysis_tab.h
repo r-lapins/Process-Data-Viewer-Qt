@@ -56,6 +56,8 @@ private:
     void populateSensorOptions();
     void initializeDateControls();
 
+    bool hasInvalidTimeRange() const;
+
     AnalysisSettings currentSettings() const;
     pdt::FilterOptions currentFilterOptions() const;
 
@@ -81,6 +83,16 @@ private:
     QLabel* m_statsMaxValueLabel = nullptr;
     QLabel* m_statsMeanValueLabel = nullptr;
     QLabel* m_statsStddevValueLabel = nullptr;
+
+    QLabel* m_statsParsedOkValueLabel = nullptr;
+    QLabel* m_statsSkippedValueLabel = nullptr;
+    QLabel* m_statsTotalValueLabel = nullptr;
+    QLabel* m_statsFilteredValueLabel = nullptr;
+    QLabel* m_statsSensorValueLabel = nullptr;
+    QLabel* m_statsFromValueLabel = nullptr;
+    QLabel* m_statsToValueLabel = nullptr;
+    QLabel* m_statsDetectedAnomaliesValueLabel = nullptr;
+    QLabel* m_statsZThresholdValueLabel = nullptr;
 
     QListWidget* m_alertsListWidget = nullptr;
 

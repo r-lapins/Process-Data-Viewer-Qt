@@ -104,9 +104,11 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_fromDateEdit = new QDateEdit(controlsGroup);
     m_fromDateEdit->setDisplayFormat("yyyy-MM-dd");
     m_fromDateEdit->setCalendarPopup(true);
+    m_fromDateEdit->setEnabled(false);
 
     m_fromTimeEdit = new QTimeEdit(controlsGroup);
     m_fromTimeEdit->setDisplayFormat("HH:mm:ss");
+    m_fromTimeEdit->setEnabled(false);
 
     auto* fromWidget = new QWidget(controlsGroup);
     auto* fromLayout = new QHBoxLayout(fromWidget);
@@ -118,9 +120,11 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_toDateEdit = new QDateEdit(controlsGroup);
     m_toDateEdit->setDisplayFormat("yyyy-MM-dd");
     m_toDateEdit->setCalendarPopup(true);
+    m_toDateEdit->setEnabled(false);
 
     m_toTimeEdit = new QTimeEdit(controlsGroup);
-    m_toTimeEdit->setDisplayFormat("HH:mm:ss");
+    m_toTimeEdit->setDisplayFormat("HH:mm:ss");    
+    m_toTimeEdit->setEnabled(false);
 
     auto* toWidget = new QWidget(controlsGroup);
     auto* toLayout = new QHBoxLayout(toWidget);
@@ -132,7 +136,7 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_zThresholdSpinBox->setRange(0.1, 10.0);
     m_zThresholdSpinBox->setDecimals(2);
     m_zThresholdSpinBox->setSingleStep(0.1);
-    m_zThresholdSpinBox->setValue(3.0);
+    m_zThresholdSpinBox->setValue(1.5);
 
     m_topNSpinBox = new QSpinBox(controlsGroup);
     m_topNSpinBox->setRange(1, 100);
@@ -166,18 +170,63 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     auto* statsLayout = new QFormLayout(statsGroup);
 
     m_statsFileTypeValueLabel = new QLabel("-", statsGroup);
-    m_statsCountValueLabel = new QLabel("-", statsGroup);
+    // m_statsParsedOkValueLabel = new QLabel("-", statsGroup);
+    // m_statsSkippedValueLabel = new QLabel("-", statsGroup);
+    m_statsTotalValueLabel = new QLabel("-", statsGroup);
+    m_statsFilteredValueLabel = new QLabel("-", statsGroup);
+    m_statsSensorValueLabel = new QLabel("-", statsGroup);
+    m_statsFromValueLabel = new QLabel("-", statsGroup);
+    m_statsToValueLabel = new QLabel("-", statsGroup);
+    m_statsDetectedAnomaliesValueLabel = new QLabel("-", statsGroup);
     m_statsMinValueLabel = new QLabel("-", statsGroup);
     m_statsMaxValueLabel = new QLabel("-", statsGroup);
     m_statsMeanValueLabel = new QLabel("-", statsGroup);
     m_statsStddevValueLabel = new QLabel("-", statsGroup);
+    m_statsZThresholdValueLabel = new QLabel("-", statsGroup);
 
     statsLayout->addRow("File type:", m_statsFileTypeValueLabel);
-    statsLayout->addRow("Count:", m_statsCountValueLabel);
-    statsLayout->addRow("Min:", m_statsMinValueLabel);
-    statsLayout->addRow("Max:", m_statsMaxValueLabel);
-    statsLayout->addRow("Mean:", m_statsMeanValueLabel);
-    statsLayout->addRow("Stddev:", m_statsStddevValueLabel);
+    // statsLayout->addRow("Parsed OK:", m_statsParsedOkValueLabel);
+    // statsLayout->addRow("Skipped:", m_statsSkippedValueLabel);
+    statsLayout->addRow("Total loaded:", m_statsTotalValueLabel);
+    statsLayout->addRow("Filtered:", m_statsFilteredValueLabel);
+
+    auto* filterGroup = new QGroupBox(statsGroup);
+    auto* filterLayout = new QFormLayout(filterGroup);
+    filterLayout->setContentsMargins(0, 0, 0, 0);
+
+    filterLayout->addRow("Sensor:", m_statsSensorValueLabel);
+    filterLayout->addRow("From:", m_statsFromValueLabel);
+    filterLayout->addRow("To:", m_statsToValueLabel);
+    filterLayout->addRow("Z-threshold:", m_statsZThresholdValueLabel);
+
+    statsLayout->addRow(filterGroup);
+
+    auto* signalGroup = new QGroupBox(statsGroup);
+    auto* signalLayout = new QHBoxLayout(signalGroup);
+    signalLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto* signalLeftWidget = new QWidget(signalGroup);
+    auto* signalLeftLayout = new QFormLayout(signalLeftWidget);
+    signalLeftLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto* signalRightWidget = new QWidget(signalGroup);
+    auto* signalRightLayout = new QFormLayout(signalRightWidget);
+    signalRightLayout->setContentsMargins(0, 0, 0, 0);
+
+    signalLeftLayout->addRow("Min:", m_statsMinValueLabel);
+    signalLeftLayout->addRow("Max:", m_statsMaxValueLabel);
+
+    signalRightLayout->addRow("Mean:", m_statsMeanValueLabel);
+    signalRightLayout->addRow("Stddev:", m_statsStddevValueLabel);
+
+    signalLayout->addWidget(signalLeftWidget);
+    signalLayout->addWidget(signalRightWidget);
+
+    statsLayout->addRow(signalGroup);
+    statsLayout->addRow("Detected anomalies:", m_statsDetectedAnomaliesValueLabel);
+
+    statsLayout->setLabelAlignment(Qt::AlignLeft);
+    statsLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
 
     return statsGroup;
 }
@@ -195,12 +244,20 @@ QWidget* CsvAnalysisTab::createAlertsPanel(QWidget* parent)
 
 void CsvAnalysisTab::resetStatisticsPanel()
 {
+    m_statsTotalValueLabel->setText("-");
     m_statsFileTypeValueLabel->setText("-");
-    m_statsCountValueLabel->setText("-");
+    // m_statsParsedOkValueLabel->setText("-");
+    // m_statsSkippedValueLabel->setText("-");
+    m_statsFilteredValueLabel->setText("-");
+    m_statsSensorValueLabel->setText("-");
+    m_statsFromValueLabel->setText("-");
+    m_statsToValueLabel->setText("-");
     m_statsMinValueLabel->setText("-");
     m_statsMaxValueLabel->setText("-");
     m_statsMeanValueLabel->setText("-");
     m_statsStddevValueLabel->setText("-");
+    m_statsZThresholdValueLabel->setText("-");
+    m_statsDetectedAnomaliesValueLabel->setText("-");
 }
 
 void CsvAnalysisTab::updateStatisticsPanel()
@@ -214,13 +271,65 @@ void CsvAnalysisTab::updateStatisticsPanel()
     const auto settings = currentSettings();
     const auto filtered = m_session.dataSet->filter(currentFilterOptions());
     const auto stats = filtered.stats();
+    const auto summary = pdt::detect_zscore_global(filtered, settings.zThreshold, settings.topN);
 
     m_statsFileTypeValueLabel->setText("CSV");
-    m_statsCountValueLabel->setText(QString::number(static_cast<qulonglong>(stats.count)));
+
+    // m_statsParsedOkValueLabel->setText(
+    //     QString::number(static_cast<qulonglong>(m_session.parsedOk))
+    //     );
+    // m_statsSkippedValueLabel->setText(
+    //     QString::number(static_cast<qulonglong>(m_session.skipped))
+    //     );
+
+    m_statsTotalValueLabel->setText(
+        QString::number(static_cast<qulonglong>(m_session.dataSet->size()))
+        );
+    m_statsFilteredValueLabel->setText(
+        QString::number(static_cast<qulonglong>(filtered.size()))
+        );
+
+    if (!m_session.dataSet.has_value() || m_session.dataSet->empty()) {
+        m_statsSensorValueLabel->setText("-");
+    } else if (!settings.useSensor) {
+        m_statsSensorValueLabel->setText("All");
+    } else {
+        m_statsSensorValueLabel->setText(settings.sensor);
+    }
+
+    if (settings.useFrom && settings.from.has_value()) {
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(
+                              settings.from->time_since_epoch()
+                              ).count();
+
+        m_statsFromValueLabel->setText(
+            QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss")
+            );
+    } else {
+        m_statsFromValueLabel->setText("-");
+    }
+
+    if (settings.useTo && settings.to.has_value()) {
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(
+                              settings.to->time_since_epoch()
+                              ).count();
+
+        m_statsToValueLabel->setText(
+            QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss")
+            );
+    } else {
+        m_statsToValueLabel->setText("-");
+    }
+
+    m_statsDetectedAnomaliesValueLabel->setText(
+        QString::number(static_cast<qulonglong>(summary.count))
+        );
+
     m_statsMinValueLabel->setText(QString::number(stats.min, 'f', 1));
     m_statsMaxValueLabel->setText(QString::number(stats.max, 'f', 1));
     m_statsMeanValueLabel->setText(QString::number(stats.mean, 'f', 2));
     m_statsStddevValueLabel->setText(QString::number(stats.stddev, 'f', 2));
+    m_statsZThresholdValueLabel->setText(QString::number(settings.zThreshold, 'f', 2));
 }
 
 void CsvAnalysisTab::resetAlertsPanel()
@@ -237,25 +346,41 @@ void CsvAnalysisTab::updateAlertsPanel()
         return;
     }
 
+    if (hasInvalidTimeRange()) {
+        m_alertsListWidget->clear();
+        m_alertsListWidget->addItem("Invalid time range: From is later than To");
+        return;
+    }
+
     const auto settings = currentSettings();
     const auto filtered = m_session.dataSet->filter(currentFilterOptions());
     const auto summary = pdt::detect_zscore_global(filtered, settings.zThreshold, settings.topN);
 
     m_alertsListWidget->clear();
 
+    if (filtered.empty()) {
+        m_samplesTableView->hide();
+        m_dataPlaceholderLabel->setText("No rows match current filters");
+        m_dataPlaceholderLabel->show();
+        m_alertsListWidget->addItem("No anomalies detected");
+        return;
+    }
+
     if (summary.top.empty()) {
-        m_alertsListWidget->addItem("No anomalies");
+        m_alertsListWidget->addItem("No anomalies detected");
         return;
     }
 
     for (const auto& a : summary.top) {
         const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
-        const QString timestampText =
-            QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts)).toString(Qt::ISODate);
+        const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts));
+        const QString dateText = dt.date().toString("yyyy-MM-dd");
+        const QString timeText = dt.time().toString("HH:mm:ss");
 
         m_alertsListWidget->addItem(
-            QString("%1 | sensor=%2 | value=%3 | z=%4")
-                .arg(timestampText,
+            QString("%1  %2  |  %3  |  value = %4  |  z = %5")
+                .arg(dateText,
+                     timeText,
                      QString::fromStdString(a.sensor),
                      QString::number(a.value, 'f', 1),
                      QString::number(a.zscore, 'f', 2))
@@ -270,7 +395,6 @@ void CsvAnalysisTab::populateSensorOptions()
     }
 
     m_sensorComboBox->clear();
-    m_sensorComboBox->addItem("All");
 
     if (!m_session.dataSet.has_value()) {
         m_sensorComboBox->setEnabled(false);
@@ -285,8 +409,6 @@ void CsvAnalysisTab::populateSensorOptions()
     for (const auto& sensor : sensors) {
         m_sensorComboBox->addItem(sensor);
     }
-
-    m_sensorComboBox->setEnabled(true);
 }
 
 void CsvAnalysisTab::initializeDateControls()
@@ -353,6 +475,12 @@ void CsvAnalysisTab::connectControls()
     connect(m_toTimeEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
     connect(m_zThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
     connect(m_topNSpinBox, &QSpinBox::valueChanged, this, trigger);
+
+    connect(m_useSensorCheckBox, &QCheckBox::toggled, m_sensorComboBox, &QWidget::setEnabled);
+    connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromDateEdit, &QWidget::setEnabled);
+    connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromTimeEdit, &QWidget::setEnabled);
+    connect(m_useToCheckBox, &QCheckBox::toggled, m_toDateEdit, &QWidget::setEnabled);
+    connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);
 }
 
 void CsvAnalysisTab::displaySessionData()
@@ -375,6 +503,25 @@ void CsvAnalysisTab::displaySessionData()
 
 void CsvAnalysisTab::recomputeAnalysis()
 {
+    if (hasInvalidTimeRange()) {
+        if (m_csvSamplesModel != nullptr) {
+            m_csvSamplesModel->clear();
+        }
+
+        if (m_dataPlaceholderLabel != nullptr) {
+            m_dataPlaceholderLabel->setText("Invalid time range");
+            m_dataPlaceholderLabel->show();
+        }
+
+        if (m_samplesTableView != nullptr) {
+            m_samplesTableView->hide();
+        }
+
+        resetStatisticsPanel();
+        updateAlertsPanel();
+        return;
+    }
+
     displaySessionData();
     updateStatisticsPanel();
     updateAlertsPanel();
@@ -406,7 +553,7 @@ CsvAnalysisTab::AnalysisSettings CsvAnalysisTab::currentSettings() const
     AnalysisSettings s{};
 
     s.sensor = m_sensorComboBox->currentText().trimmed();
-    s.useSensor = m_useSensorCheckBox->isChecked() && !s.sensor.isEmpty() && s.sensor != "All";
+    s.useSensor = m_useSensorCheckBox->isChecked() && !s.sensor.isEmpty();
 
     s.useFrom = m_useFromCheckBox->isChecked();
     s.useTo = m_useToCheckBox->isChecked();
@@ -425,6 +572,14 @@ CsvAnalysisTab::AnalysisSettings CsvAnalysisTab::currentSettings() const
     s.topN = static_cast<std::size_t>(m_topNSpinBox->value());
 
     return s;
+}
+
+bool CsvAnalysisTab::hasInvalidTimeRange() const
+{
+    const auto settings = currentSettings();
+    return settings.useFrom && settings.useTo &&
+           settings.from.has_value() && settings.to.has_value() &&
+           *settings.from > *settings.to;
 }
 
 } // namespace pdv
