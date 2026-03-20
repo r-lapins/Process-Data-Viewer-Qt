@@ -148,6 +148,9 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_recomputeButton = new QPushButton("Recompute", controlsGroup);
     m_recomputeButton->setEnabled(false);
 
+    m_showSkippedRowsCheckBox = new QCheckBox("Show skipped?", controlsGroup);
+    m_showSkippedRowsCheckBox->setChecked(false);
+
     controlsLayout->addRow("Sensor filter:", m_useSensorCheckBox);
     controlsLayout->addRow("Sensor:", m_sensorComboBox);
     controlsLayout->addRow("From filter:", m_useFromCheckBox);
@@ -158,6 +161,7 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     controlsLayout->addRow("Top anomalies:", m_topNSpinBox);
     controlsLayout->addRow("", m_recomputeButton);
     controlsLayout->addRow("", m_autoUpdateCheckBox);
+    controlsLayout->addRow("", m_showSkippedRowsCheckBox);
 
     controlsGroup->setFixedWidth(320);
 
@@ -170,8 +174,7 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     auto* statsLayout = new QFormLayout(statsGroup);
 
     m_statsFileTypeValueLabel = new QLabel("-", statsGroup);
-    // m_statsParsedOkValueLabel = new QLabel("-", statsGroup);
-    // m_statsSkippedValueLabel = new QLabel("-", statsGroup);
+    m_statsSkippedValueLabel = new QLabel("-", statsGroup);
     m_statsTotalValueLabel = new QLabel("-", statsGroup);
     m_statsFilteredValueLabel = new QLabel("-", statsGroup);
     m_statsSensorValueLabel = new QLabel("-", statsGroup);
@@ -185,8 +188,7 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     m_statsZThresholdValueLabel = new QLabel("-", statsGroup);
 
     statsLayout->addRow("File type:", m_statsFileTypeValueLabel);
-    // statsLayout->addRow("Parsed OK:", m_statsParsedOkValueLabel);
-    // statsLayout->addRow("Skipped:", m_statsSkippedValueLabel);
+    statsLayout->addRow("Skipped:", m_statsSkippedValueLabel);
     statsLayout->addRow("Total loaded:", m_statsTotalValueLabel);
     statsLayout->addRow("Filtered:", m_statsFilteredValueLabel);
 
@@ -195,9 +197,9 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     filterLayout->setContentsMargins(0, 0, 0, 0);
 
     filterLayout->addRow("Sensor:", m_statsSensorValueLabel);
+    filterLayout->addRow("Z-threshold:", m_statsZThresholdValueLabel);
     filterLayout->addRow("From:", m_statsFromValueLabel);
     filterLayout->addRow("To:", m_statsToValueLabel);
-    filterLayout->addRow("Z-threshold:", m_statsZThresholdValueLabel);
 
     statsLayout->addRow(filterGroup);
 
@@ -246,8 +248,7 @@ void CsvAnalysisTab::resetStatisticsPanel()
 {
     m_statsTotalValueLabel->setText("-");
     m_statsFileTypeValueLabel->setText("-");
-    // m_statsParsedOkValueLabel->setText("-");
-    // m_statsSkippedValueLabel->setText("-");
+    m_statsSkippedValueLabel->setText("-");
     m_statsFilteredValueLabel->setText("-");
     m_statsSensorValueLabel->setText("-");
     m_statsFromValueLabel->setText("-");
@@ -274,12 +275,9 @@ void CsvAnalysisTab::updateStatisticsPanel(const pdt::DataSet& filtered)
 
     m_statsFileTypeValueLabel->setText("CSV");
 
-    // m_statsParsedOkValueLabel->setText(
-    //     QString::number(static_cast<qulonglong>(m_session.parsedOk))
-    //     );
-    // m_statsSkippedValueLabel->setText(
-    //     QString::number(static_cast<qulonglong>(m_session.skipped))
-    //     );
+    m_statsSkippedValueLabel->setText(
+        QString::number(static_cast<qulonglong>(m_session.skipped))
+        );
 
     m_statsTotalValueLabel->setText(
         QString::number(static_cast<qulonglong>(m_session.dataSet->size()))
@@ -361,28 +359,38 @@ void CsvAnalysisTab::updateAlertsPanel(const pdt::DataSet& filtered)
         m_dataPlaceholderLabel->setText("No rows match current filters");
         m_dataPlaceholderLabel->show();
         m_alertsListWidget->addItem("No anomalies detected");
-        return;
-    }
 
-    if (summary.top.empty()) {
+    } else if (summary.top.empty()) {
         m_alertsListWidget->addItem("No anomalies detected");
-        return;
+
+    } else {
+        for (const auto& a : summary.top) {
+            const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
+            const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts));
+            const QString dateText = dt.date().toString("yyyy-MM-dd");
+            const QString timeText = dt.time().toString("HH:mm:ss");
+
+            m_alertsListWidget->addItem(
+                QString("%1  %2  |  %3  |  value = %4  |  z = %5")
+                    .arg(dateText,
+                         timeText,
+                         QString::fromStdString(a.sensor),
+                         QString::number(a.value, 'f', 1),
+                         QString::number(a.zscore, 'f', 2))
+                );
+        }
     }
 
-    for (const auto& a : summary.top) {
-        const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
-        const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts));
-        const QString dateText = dt.date().toString("yyyy-MM-dd");
-        const QString timeText = dt.time().toString("HH:mm:ss");
+    if (!m_session.skippedRows.empty() && m_showSkippedRowsCheckBox->isChecked()) {
+        m_alertsListWidget->addItem("------------ Skipped rows ------------");
 
-        m_alertsListWidget->addItem(
-            QString("%1  %2  |  %3  |  value = %4  |  z = %5")
-                .arg(dateText,
-                     timeText,
-                     QString::fromStdString(a.sensor),
-                     QString::number(a.value, 'f', 1),
-                     QString::number(a.zscore, 'f', 2))
-            );
+        for (const auto& row : m_session.skippedRows) {
+            m_alertsListWidget->addItem(
+                QString("line %1: %2")
+                    .arg(row.line_number)
+                    .arg(QString::fromStdString(row.text))
+                );
+        }
     }
 }
 
@@ -473,12 +481,13 @@ void CsvAnalysisTab::connectControls()
     connect(m_toTimeEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
     connect(m_zThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
     connect(m_topNSpinBox, &QSpinBox::valueChanged, this, trigger);
+    connect(m_showSkippedRowsCheckBox, &QCheckBox::toggled, this, trigger);
 
     connect(m_useSensorCheckBox, &QCheckBox::toggled, m_sensorComboBox, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromDateEdit, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromTimeEdit, &QWidget::setEnabled);
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toDateEdit, &QWidget::setEnabled);
-    connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);
+    connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);    
 }
 
 void CsvAnalysisTab::displaySessionData(const pdt::DataSet& filtered)

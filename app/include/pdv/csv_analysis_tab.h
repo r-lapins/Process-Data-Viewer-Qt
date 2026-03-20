@@ -71,9 +71,10 @@ private:
     QCheckBox* m_useSensorCheckBox = nullptr;
     QCheckBox* m_useFromCheckBox = nullptr;
     QCheckBox* m_useToCheckBox = nullptr;
+    QCheckBox* m_autoUpdateCheckBox = nullptr;
+    QCheckBox* m_showSkippedRowsCheckBox = nullptr;
     QDoubleSpinBox* m_zThresholdSpinBox = nullptr;
     QSpinBox* m_topNSpinBox = nullptr;
-    QCheckBox* m_autoUpdateCheckBox = nullptr;
     QPushButton* m_recomputeButton = nullptr;
 
     QLabel* m_statsFileTypeValueLabel = nullptr;
@@ -82,7 +83,6 @@ private:
     QLabel* m_statsMeanValueLabel = nullptr;
     QLabel* m_statsStddevValueLabel = nullptr;
 
-    QLabel* m_statsParsedOkValueLabel = nullptr;
     QLabel* m_statsSkippedValueLabel = nullptr;
     QLabel* m_statsTotalValueLabel = nullptr;
     QLabel* m_statsFilteredValueLabel = nullptr;

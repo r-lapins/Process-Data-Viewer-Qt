@@ -43,10 +43,14 @@ LoadResult FileLoaderService::loadCsv(const QString &filePath) const
         }
 
         const auto importResult = pdt::read_csv(file);
+
         SessionData session;
         session.kind = SessionData::FileKind::Csv;
         session.filePath = filePath;
-        session.dataSet = pdt::DataSet(importResult.samples);
+        session.dataSet = pdt::DataSet(std::move(importResult.samples));
+
+        session.skipped = importResult.skipped;
+        session.skippedRows = std::move(importResult.skipped_rows);
 
         return LoadResult{
             .success = true,
