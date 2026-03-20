@@ -9,14 +9,20 @@
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QToolBar>
+#include <QTimer>
+#include <QScreen>
+#include <QGuiApplication>
 #include <QtConcurrent/QtConcurrentRun>
 
 namespace pdv {
 
 MainWindow::MainWindow()
 {
-    resize(1000, 700);
     setMaximumHeight(1000);
+    setMinimumHeight(250);
+    setMaximumWidth(1800);
+    setMinimumWidth(500);
+    resize(500, 250);
 
     m_loadWatcher = new QFutureWatcher<LoadResult>(this);
     connect(m_loadWatcher, &QFutureWatcher<LoadResult>::finished,
@@ -147,6 +153,10 @@ void MainWindow::handleLoadFinished()
 
     m_tabWidget->setCurrentIndex(index);
 
+    QTimer::singleShot(0, this, [this]() {
+        growToFitCurrentTab();
+    });
+
     statusBar()->showMessage(
         QString("Loaded file: %1").arg(tab->tabTitle()),
         3000
@@ -191,6 +201,19 @@ void MainWindow::updateWindowTitle()
     }
 
     setWindowTitle(QString("%1 - %2").arg(kAppTitle, m_tabWidget->tabText(currentIndex)));
+}
+
+void MainWindow::growToFitCurrentTab()
+{
+    const QSize currentSize = size();
+    const QSize wantedSize = sizeHint();
+
+    const int newWidth = std::max(currentSize.width(), wantedSize.width());
+    const int newHeight = std::max(currentSize.height(), wantedSize.height());
+
+    if (newWidth > currentSize.width() || newHeight > currentSize.height()) {
+        resize(newWidth, newHeight);
+    }
 }
 
 } // namespace pdv

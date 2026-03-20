@@ -30,6 +30,8 @@ private:
     void setLoadingUiState(bool loading);
     void updateWindowTitle();
 
+    void growToFitCurrentTab();
+
     FileLoaderService m_fileLoaderService;
 
     QAction* m_openAction = nullptr;
