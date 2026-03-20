@@ -30,7 +30,8 @@ private:
     void setLoadingUiState(bool loading);
     void updateWindowTitle();
 
-    void growToFitCurrentTab();
+    void updateLayoutGeometry();
+    void adjustWindowToCurrentTab();
 
     FileLoaderService m_fileLoaderService;
 

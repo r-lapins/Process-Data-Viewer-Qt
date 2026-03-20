@@ -27,6 +27,7 @@ WavAnalysisTab::WavAnalysisTab(const SessionData& session, QWidget* parent)
 {
     createUi();
     connectControls();
+    updatePlotVisibility();
     recomputeAnalysis();
 }
 
@@ -53,7 +54,7 @@ void WavAnalysisTab::createUi()
     auto* bottomLayout = new QVBoxLayout(bottomWidget);
     bottomLayout->setContentsMargins(0, 0, 0, 0);
 
-    auto* plotsSplitter = new QSplitter(Qt::Vertical, bottomWidget);
+    m_plotsSplitter = new QSplitter(Qt::Vertical, bottomWidget);
 
     m_signalPlotContainer = createSignalPlot(m_plotsSplitter);
     m_spectrumPlotContainer = createSpectrumPlot(m_plotsSplitter);
@@ -61,12 +62,12 @@ void WavAnalysisTab::createUi()
     m_signalPlotContainer->setVisible(false);
     m_spectrumPlotContainer->setVisible(false);
 
-    plotsSplitter->addWidget(m_signalPlotContainer);
-    plotsSplitter->addWidget(m_spectrumPlotContainer);
-    plotsSplitter->setStretchFactor(0, 1);
-    plotsSplitter->setStretchFactor(1, 1);
+    m_plotsSplitter->addWidget(m_signalPlotContainer);
+    m_plotsSplitter->addWidget(m_spectrumPlotContainer);
+    m_plotsSplitter->setStretchFactor(0, 1);
+    m_plotsSplitter->setStretchFactor(1, 1);
 
-    bottomLayout->addWidget(plotsSplitter);
+    bottomLayout->addWidget(m_plotsSplitter);
 
     rootLayout->addWidget(topWidget);
     rootLayout->addWidget(bottomWidget, 1);
@@ -554,6 +555,11 @@ void WavAnalysisTab::updateFromSpinStep()
 
 void WavAnalysisTab::updatePlotVisibility()
 {
+    const bool signalVisible =
+        (m_showSignalButton != nullptr && m_showSignalButton->isChecked());
+    const bool spectrumVisible =
+        (m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
+
     if (m_signalPlotContainer != nullptr) {
         m_signalPlotContainer->setVisible(m_showSignalButton != nullptr && m_showSignalButton->isChecked());
     }
@@ -562,24 +568,20 @@ void WavAnalysisTab::updatePlotVisibility()
         m_spectrumPlotContainer->setVisible(m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
     }
 
-    if (m_plotsSplitter == nullptr) {
-        return;
+    if (m_plotsSplitter != nullptr) {
+        if (signalVisible && spectrumVisible) {
+            m_plotsSplitter->setSizes({1, 1});
+        } else if (signalVisible) {
+            m_plotsSplitter->setSizes({1, 0});
+        } else if (spectrumVisible) {
+            m_plotsSplitter->setSizes({0, 1});
+        } else {
+            m_plotsSplitter->setSizes({0, 0});
+        }
     }
 
-    const bool signalVisible =
-        (m_showSignalButton != nullptr && m_showSignalButton->isChecked());
-    const bool spectrumVisible =
-        (m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
-
-    if (signalVisible && spectrumVisible) {
-        m_plotsSplitter->setSizes({1, 1});
-    } else if (signalVisible) {
-        m_plotsSplitter->setSizes({1, 0});
-    } else if (spectrumVisible) {
-        m_plotsSplitter->setSizes({0, 1});
-    } else {
-        m_plotsSplitter->setSizes({0, 0});
-    }
+    updateGeometry();
+    emit preferredSizeChanged();
 }
 
 QWidget* WavAnalysisTab::createSignalPlot(QWidget* parent)

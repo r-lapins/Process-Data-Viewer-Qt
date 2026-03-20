@@ -19,8 +19,13 @@ public:
 
     static AnalysisTab* create(const SessionData& session, QWidget* parent = nullptr);
 
+signals:
+    void preferredSizeChanged();
+
 protected:
     SessionData m_session;
 };
+
+
 
 } // namespace pdv

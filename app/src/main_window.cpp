@@ -10,6 +10,7 @@
 #include <QTabWidget>
 #include <QToolBar>
 #include <QTimer>
+#include <QLayout>
 #include <QScreen>
 #include <QGuiApplication>
 #include <QtConcurrent/QtConcurrentRun>
@@ -41,8 +42,7 @@ void MainWindow::createMenu()
     auto* fileMenu = menuBar()->addMenu("File");
     m_openAction = fileMenu->addAction("Open");
 
-    connect(m_openAction, &QAction::triggered,
-            this, &MainWindow::openFile);
+    connect(m_openAction, &QAction::triggered, this, &MainWindow::openFile);
 }
 
 void MainWindow::createToolbar()
@@ -52,8 +52,7 @@ void MainWindow::createToolbar()
 
     m_quickOpenAction = toolbar->addAction("Quick Open");
 
-    connect(m_quickOpenAction, &QAction::triggered,
-            this, &MainWindow::openFileFromDataFolder);
+    connect(m_quickOpenAction, &QAction::triggered, this, &MainWindow::openFileFromDataFolder);
 }
 
 void MainWindow::createCentralWorkspace()
@@ -62,18 +61,17 @@ void MainWindow::createCentralWorkspace()
     m_tabWidget->setTabsClosable(true);
     m_tabWidget->setDocumentMode(true);
 
-    connect(m_tabWidget, &QTabWidget::tabCloseRequested,
-            this, [this](int index) {
+    connect(m_tabWidget, &QTabWidget::tabCloseRequested, this, [this](int index) {
                 QWidget* page = m_tabWidget->widget(index);
                 m_tabWidget->removeTab(index);
                 delete page;
                 updateWindowTitle();
             });
-
-    connect(m_tabWidget, &QTabWidget::currentChanged,
-            this, [this](int) {
-                updateWindowTitle();
-            });
+    
+    connect(m_tabWidget, &QTabWidget::currentChanged, this, [this](int) {
+        updateWindowTitle();
+        adjustWindowToCurrentTab();
+    });
 
     setCentralWidget(m_tabWidget);
 }
@@ -149,13 +147,16 @@ void MainWindow::handleLoadFinished()
         return;
     }
 
-    const int index = m_tabWidget->addTab(tab, tab->tabTitle());
+    connect(tab, &AnalysisTab::preferredSizeChanged, this, [this]() {
+        QTimer::singleShot(0, this, [this]() {
+            adjustWindowToCurrentTab();
+        });
+    });
 
+    const int index = m_tabWidget->addTab(tab, tab->tabTitle());
     m_tabWidget->setCurrentIndex(index);
 
-    QTimer::singleShot(0, this, [this]() {
-        growToFitCurrentTab();
-    });
+    QTimer::singleShot(0, this, [this]() { adjustWindowToCurrentTab(); });
 
     statusBar()->showMessage(
         QString("Loaded file: %1").arg(tab->tabTitle()),
@@ -203,15 +204,36 @@ void MainWindow::updateWindowTitle()
     setWindowTitle(QString("%1 - %2").arg(kAppTitle, m_tabWidget->tabText(currentIndex)));
 }
 
-void MainWindow::growToFitCurrentTab()
+void MainWindow::updateLayoutGeometry()
 {
+    if (centralWidget() == nullptr) {
+        return;
+    }
+
+    if (m_tabWidget != nullptr) {
+        m_tabWidget->updateGeometry();
+    }
+
+    if (auto* cwLayout = centralWidget()->layout(); cwLayout != nullptr) {
+        cwLayout->activate();
+    }
+
+    centralWidget()->adjustSize();
+    centralWidget()->updateGeometry();
+    adjustSize();
+}
+
+void MainWindow::adjustWindowToCurrentTab()
+{
+    updateLayoutGeometry();
+
     const QSize currentSize = size();
-    const QSize wantedSize = sizeHint();
+    const QSize wantedSize = sizeHint().boundedTo(maximumSize()).expandedTo(minimumSize());
 
     const int newWidth = std::max(currentSize.width(), wantedSize.width());
     const int newHeight = std::max(currentSize.height(), wantedSize.height());
 
-    if (newWidth > currentSize.width() || newHeight > currentSize.height()) {
+    if (newWidth != currentSize.width() || newHeight != currentSize.height()) {
         resize(newWidth, newHeight);
     }
 }
