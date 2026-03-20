@@ -1,11 +1,7 @@
 #pragma once
 
 #include "pdv/analysis_tab.h"
-
-#include <pdt/signal/window.h>
-#include <pdt/signal/peak_detection.h>
-
-#include <vector>
+#include "pdv/wav_analysis_engine.h"
 
 class QLabel;
 class QListWidget;
@@ -13,13 +9,17 @@ class QPushButton;
 class QComboBox;
 class QSpinBox;
 class QDoubleSpinBox;
-class QChartView;
-class QLineSeries;
-class QValueAxis;
 class QCheckBox;
 class QStackedWidget;
 
 namespace pdv {
+
+class SignalChartWidget;
+class SpectrumChartWidget;
+
+using AnalysisResult = WavAnalysisEngine::AnalysisResult;
+using AnalysisSettings = WavAnalysisEngine::AnalysisSettings;
+using SpectrumAlgorithm = WavAnalysisEngine::SpectrumAlgorithm;
 
 class WavAnalysisTab : public AnalysisTab
 {
@@ -29,68 +29,39 @@ public:
     explicit WavAnalysisTab(const SessionData& session, QWidget* parent = nullptr);
 
 private:
-    enum class SpectrumAlgorithm {
-        Dft,
-        Fft
-    };
-
-    struct AnalysisSettings {
-        SpectrumAlgorithm algorithm{SpectrumAlgorithm::Fft};
-        bool useWindow{true};
-        pdt::WindowType window{pdt::WindowType::Hann};
-        pdt::PeakDetectionMode peakMode{pdt::PeakDetectionMode::LocalMaxima};
-        double threshold{0.20};
-        std::size_t topPeaks{20};
-        std::size_t from{0};
-        std::size_t bins{1024};
-    };
-
-    struct AnalysisResult {
-        std::vector<double> rawSegment;
-        std::vector<double> processedSegment;
-        pdt::Spectrum spectrum;
-        std::vector<pdt::Peak> allPeaks;
-        std::vector<pdt::Peak> dominantPeaks;
-        double minValue{0.0};
-        double maxValue{0.0};
-        double meanValue{0.0};
-        double stddevValue{0.0};
-    };
-
+    // ui creation
     void createUi();
-
-    QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createControlsPanel(QWidget* parent);
+    QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createAlertsPanel(QWidget* parent);
-    QChartView* createSignalPlot(QWidget* parent);
+    QWidget* createSignalPlot(QWidget* parent);
+    QWidget* createSpectrumPlot(QWidget* parent);
 
+    // orchestration
     void connectControls();
+    void recomputeAnalysis();
+    void triggerAutoRecompute();
 
-    void resetStatisticsPanel();
-    void resetAlertsPanel();
-    void resetSignalPlot();
+    // analysis
+    std::size_t selectedBins() const;
+    SpectrumAlgorithm selectedAlgorithm() const;
+    AnalysisSettings currentSettings() const;
+    bool useWindow() const;
 
+    // ui updates
     void updateStatisticsPanel(const AnalysisResult& result);
     void updateAlertsPanel(const AnalysisResult& result);
     void updateSignalPlot(const AnalysisResult& result);
+    void updateSpectrumPlot(const AnalysisResult& result);
 
-    void recomputeAnalysis();
-
-    bool useWindow() const;
-
-    std::size_t selectedBins() const;
+    // resets/helpers
+    void resetStatisticsPanel();
+    void resetAlertsPanel();
     void updateBinsInputMode();
     void rebuildFftBinsCombo();
     void updateFromSpinRange();
-
-    void triggerAutoRecompute();
     void updateFromSpinStep();
 
-    AnalysisSettings currentSettings() const;
-    AnalysisResult analyzeCurrentSelection() const;
-
-    std::vector<double> selectedSegment() const;
-    SpectrumAlgorithm selectedAlgorithm() const;
     QString toString(SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;
     QString toString(pdt::PeakDetectionMode mode) const;
@@ -113,34 +84,21 @@ private:
 
     QSpinBox* m_fromSpinBox = nullptr;
     QSpinBox* m_binsSpinBox = nullptr;
+    QSpinBox* m_topPeaksSpinBox = nullptr;
+
     QComboBox* m_windowComboBox = nullptr;
     QComboBox* m_algorithmComboBox = nullptr;
-    QDoubleSpinBox* m_thresholdSpinBox = nullptr;
     QComboBox* m_peakModeComboBox = nullptr;
-    QSpinBox* m_topPeaksSpinBox = nullptr;
-    QPushButton* m_recomputeButton = nullptr;
-
-    QListWidget* m_alertsListWidget = nullptr;
-
-    QChartView* m_signalChartView = nullptr;
-    QLineSeries* m_signalSeries = nullptr;
-    QValueAxis* m_signalAxisX = nullptr;
-    QValueAxis* m_signalAxisY = nullptr;
+    QComboBox* m_binsComboBox = nullptr;
 
     QCheckBox* m_autoUpdateCheckBox = nullptr;
-
-    QComboBox* m_binsComboBox = nullptr;
+    QPushButton* m_recomputeButton = nullptr;
+    QListWidget* m_alertsListWidget = nullptr;
+    QDoubleSpinBox* m_thresholdSpinBox = nullptr;
     QStackedWidget* m_binsInputStack = nullptr;
 
-    QChartView* createSpectrumPlot(QWidget* parent);
-
-    void resetSpectrumPlot();
-    void updateSpectrumPlot(const AnalysisResult& result);
-
-    QLineSeries* m_spectrumSeries = nullptr;
-    QValueAxis* m_spectrumAxisX = nullptr;
-    QValueAxis* m_spectrumAxisY = nullptr;
-    QChartView* m_spectrumChartView = nullptr;
+    SignalChartWidget* m_signalChartWidget = nullptr;
+    SpectrumChartWidget* m_spectrumChartWidget = nullptr;
 };
 
 } // namespace pdv

@@ -6,6 +6,8 @@ set(SOURCES
     src/analysis_tab.cpp
     src/csv_analysis_tab.cpp
     src/wav_analysis_tab.cpp
+    src/wav_analysis_engine.cpp
+    src/wav_analysis_charts.cpp
 )
 
 set(HEADERS
@@ -16,6 +18,8 @@ set(HEADERS
     include/pdv/analysis_tab.h
     include/pdv/csv_analysis_tab.h
     include/pdv/wav_analysis_tab.h
+    include/pdv/wav_analysis_engine.h
+    include/pdv/wav_analysis_charts.h
 )
 
 qt_add_executable(process_data_viewer

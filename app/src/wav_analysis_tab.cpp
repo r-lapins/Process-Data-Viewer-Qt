@@ -1,12 +1,8 @@
 #include "pdv/wav_analysis_tab.h"
-
-#include <pdt/signal/dft.h>
-#include <pdt/signal/fft.h>
+#include "pdv/wav_analysis_charts.h"
 
 #include <algorithm>
-#include <cmath>
 #include <vector>
-#include <numeric>
 #include <limits>
 
 #include <QCheckBox>
@@ -18,18 +14,11 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
-#include <QPointF>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QSplitter>
-#include <QVector>
 #include <QVBoxLayout>
 #include <QStackedWidget>
-
-#include <QtCharts/QChart>
-#include <QtCharts/QChartView>
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QValueAxis>
 
 namespace pdv {
 
@@ -164,8 +153,10 @@ QWidget* WavAnalysisTab::createControlsPanel(QWidget* parent)
     m_autoUpdateCheckBox = new QCheckBox("Auto update", controlsGroup);
     m_recomputeButton = new QPushButton("Recompute", controlsGroup);
 
-    const auto& wav = *m_session.wavData;
-    const int sampleCount = static_cast<int>(wav.samples.size());
+    int sampleCount = 0;
+    if (m_session.wavData.has_value()) {
+        sampleCount = static_cast<int>(m_session.wavData->samples.size());
+    }
 
     m_fromSpinBox->setRange(0, std::max(0, sampleCount > 0 ? sampleCount - 1 : 0));
     m_fromSpinBox->setValue(0);
@@ -249,7 +240,11 @@ void WavAnalysisTab::connectControls()
 
 void WavAnalysisTab::recomputeAnalysis()
 {
-    const auto result = analyzeCurrentSelection();
+    WavAnalysisEngine::AnalysisResult result{};
+
+    if (m_session.wavData.has_value()) {
+        result = WavAnalysisEngine::analyze(*m_session.wavData, currentSettings());
+    }
 
     updateStatisticsPanel(result);
     updateAlertsPanel(result);
@@ -265,32 +260,6 @@ void WavAnalysisTab::triggerAutoRecompute()
     if (m_autoUpdateCheckBox->isChecked()) {
         recomputeAnalysis();
     }
-}
-
-std::vector<double> WavAnalysisTab::selectedSegment() const
-{
-    if (!m_session.wavData.has_value()) {
-        return {};
-    }
-
-    const auto& samples = m_session.wavData->samples;
-    if (samples.empty()) {
-        return {};
-    }
-
-    const std::size_t from = static_cast<std::size_t>(m_fromSpinBox->value());
-    if (from >= samples.size()) {
-        return {};
-    }
-
-    const std::size_t bins = selectedBins();
-    const std::size_t available = samples.size() - from;
-    const std::size_t used = std::min(bins, available);
-
-    return std::vector<double>(
-        samples.begin() + static_cast<std::ptrdiff_t>(from),
-        samples.begin() + static_cast<std::ptrdiff_t>(from + used)
-    );
 }
 
 std::size_t WavAnalysisTab::selectedBins() const
@@ -458,94 +427,7 @@ void WavAnalysisTab::resetAlertsPanel()
     m_alertsListWidget->addItem("No alerts");
 }
 
-WavAnalysisTab::AnalysisResult WavAnalysisTab::analyzeCurrentSelection() const
-{
-    AnalysisResult result{};
-
-    if (!m_session.wavData.has_value()) {
-        return result;
-    }
-
-    const auto& wav = *m_session.wavData;
-    if (wav.sample_rate == 0) {
-        return result;
-    }
-
-    const auto settings = currentSettings();
-    result.rawSegment = selectedSegment();
-
-    if (result.rawSegment.empty()) {
-        return result;
-    }
-
-    result.processedSegment = result.rawSegment;
-
-    if (settings.useWindow) {
-        result.processedSegment = pdt::apply_window(result.rawSegment, settings.window);
-    }
-
-    const auto [minIt, maxIt] = std::minmax_element(
-        result.rawSegment.begin(),
-        result.rawSegment.end()
-        );
-
-    result.minValue = *minIt;
-    result.maxValue = *maxIt;
-
-    const double sum = std::accumulate(
-        result.rawSegment.begin(),
-        result.rawSegment.end(),
-        0.0
-        );
-
-    result.meanValue = sum / static_cast<double>(result.rawSegment.size());
-
-    double sqSum = 0.0;
-    for (double sample : result.rawSegment) {
-        const double diff = sample - result.meanValue;
-        sqSum += diff * diff;
-    }
-
-    result.stddevValue = std::sqrt(sqSum / static_cast<double>(result.rawSegment.size()));
-
-    switch (settings.algorithm) {
-    case SpectrumAlgorithm::Dft:
-        result.spectrum = pdt::compute_single_sided_spectrum(
-            result.processedSegment,
-            static_cast<double>(wav.sample_rate)
-            );
-        break;
-
-    case SpectrumAlgorithm::Fft:
-        if (!pdt::is_power_of_two(result.processedSegment.size())) {
-            return result;
-        }
-
-        result.spectrum = pdt::compute_single_sided_spectrum_fft(
-            result.processedSegment,
-            static_cast<double>(wav.sample_rate)
-            );
-        break;
-    }
-
-    result.allPeaks = pdt::find_peaks(
-        result.spectrum.frequencies,
-        result.spectrum.magnitudes,
-        settings.threshold,
-        settings.peakMode
-        );
-
-    result.dominantPeaks = pdt::detect_dominant_peaks(
-        result.spectrum,
-        settings.threshold,
-        settings.peakMode,
-        settings.topPeaks
-        );
-
-    return result;
-}
-
-WavAnalysisTab::AnalysisSettings WavAnalysisTab::currentSettings() const
+AnalysisSettings WavAnalysisTab::currentSettings() const
 {
     AnalysisSettings s{};
 
@@ -579,13 +461,6 @@ void WavAnalysisTab::updateAlertsPanel(const AnalysisResult& result)
         return;
     }
 
-    if (selectedAlgorithm() == SpectrumAlgorithm::Fft &&
-        !pdt::is_power_of_two(result.processedSegment.size())) {
-        m_alertsListWidget->clear();
-        m_alertsListWidget->addItem("FFT requires a power-of-two bin count");
-        return;
-    }
-
     m_alertsListWidget->clear();
 
     if (result.dominantPeaks.empty()) {
@@ -609,7 +484,7 @@ void WavAnalysisTab::updateAlertsPanel(const AnalysisResult& result)
     }
 }
 
-WavAnalysisTab::SpectrumAlgorithm WavAnalysisTab::selectedAlgorithm() const
+SpectrumAlgorithm WavAnalysisTab::selectedAlgorithm() const
 {
     return static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 }
@@ -653,186 +528,43 @@ void WavAnalysisTab::updateFromSpinStep()
     m_fromSpinBox->setSingleStep(step);
 }
 
-QChartView* WavAnalysisTab::createSignalPlot(QWidget* parent)
+QWidget* WavAnalysisTab::createSignalPlot(QWidget* parent)
 {
-    auto* chart = new QChart();
-    m_signalSeries = new QLineSeries();
-    chart->addSeries(m_signalSeries);
-    chart->legend()->hide();
-    chart->setTitle("Signal");
-
-    m_signalAxisX = new QValueAxis(this);
-    m_signalAxisY = new QValueAxis(this);
-
-    m_signalAxisX->setTitleText("Sample index");
-    m_signalAxisY->setTitleText("Amplitude");
-    m_signalAxisX->setLabelFormat("%.0f");
-    m_signalAxisY->setLabelFormat("%.3f");
-
-    chart->addAxis(m_signalAxisX, Qt::AlignBottom);
-    chart->addAxis(m_signalAxisY, Qt::AlignLeft);
-    m_signalSeries->attachAxis(m_signalAxisX);
-    m_signalSeries->attachAxis(m_signalAxisY);
-
-    m_signalChartView = new QChartView(chart, parent);
-    m_signalChartView->setRenderHint(QPainter::Antialiasing);
-
-    m_signalChartView->setMinimumHeight(250);
-
-    return m_signalChartView;
+    m_signalChartWidget = new SignalChartWidget(parent);
+    return m_signalChartWidget;
 }
 
-void WavAnalysisTab::resetSignalPlot()
+QWidget* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
 {
-    m_signalSeries->clear();
-    m_signalAxisX->setRange(0, 1);
-    m_signalAxisY->setRange(-1, 1);
+    m_spectrumChartWidget = new SpectrumChartWidget(parent);
+    return m_spectrumChartWidget;
 }
 
 void WavAnalysisTab::updateSignalPlot(const AnalysisResult& result)
 {
-    resetSignalPlot();
-
-    const auto& segment = result.rawSegment;
-    if (segment.empty()) {
+    if (m_signalChartWidget == nullptr) {
         return;
     }
 
-    if (m_signalChartView != nullptr && m_signalChartView->chart() != nullptr) {
-        const QFileInfo fileInfo(m_session.filePath);
-        m_signalChartView->chart()->setTitle(QString("Signal plot - %1").arg(fileInfo.fileName()));
-    }
-
-    constexpr std::size_t kMaxPoints = 2000;
-    const std::size_t step =
-        std::max<std::size_t>(1, (segment.size() + kMaxPoints - 1) / kMaxPoints);
-
-    QVector<QPointF> pts;
-    pts.reserve(static_cast<int>((segment.size() + step - 1) / step));
-
-    double minValue = segment.front();
-    double maxValue = segment.front();
-
-    for (std::size_t i = 0; i < segment.size(); i += step) {
-        const double y = segment[i];
-        pts.append(QPointF(static_cast<qreal>(i), static_cast<qreal>(y)));
-
-        if (y < minValue) minValue = y;
-        if (y > maxValue) maxValue = y;
-    }
-
-    if (pts.isEmpty()) {
-        return;
-    }
-
-    m_signalSeries->replace(pts);
-    m_signalAxisX->setRange(0, static_cast<qreal>(segment.size() - 1));
-
-    if (minValue == maxValue) {
-        const double pad = (minValue == 0.0) ? 1.0 : std::abs(minValue) * 0.1;
-        m_signalAxisY->setRange(minValue - pad, maxValue + pad);
-    } else {
-        const double pad = (maxValue - minValue) * 0.05;
-        m_signalAxisY->setRange(minValue - pad, maxValue + pad);
-    }
-}
-
-QChartView* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
-{
-    auto* chart = new QChart();
-    m_spectrumSeries = new QLineSeries();
-    chart->addSeries(m_spectrumSeries);
-    chart->legend()->hide();
-    chart->setTitle("Spectrum");
-
-    m_spectrumAxisX = new QValueAxis(this);
-    m_spectrumAxisY = new QValueAxis(this);
-
-    m_spectrumAxisX->setTitleText("Frequency [Hz]");
-    m_spectrumAxisY->setTitleText("Magnitude");
-    m_spectrumAxisX->setLabelFormat("%.0f");
-    m_spectrumAxisY->setLabelFormat("%.0f");
-
-    chart->addAxis(m_spectrumAxisX, Qt::AlignBottom);
-    chart->addAxis(m_spectrumAxisY, Qt::AlignLeft);
-    m_spectrumSeries->attachAxis(m_spectrumAxisX);
-    m_spectrumSeries->attachAxis(m_spectrumAxisY);
-
-    m_spectrumChartView = new QChartView(chart, parent);
-    m_spectrumChartView->setRenderHint(QPainter::Antialiasing);
-    m_spectrumChartView->setMinimumHeight(250);
-
-    return m_spectrumChartView;
-}
-
-void WavAnalysisTab::resetSpectrumPlot()
-{
-    m_spectrumSeries->clear();
-    m_spectrumAxisX->setRange(0, 1);
-    m_spectrumAxisY->setRange(0, 1);
+    const QFileInfo fileInfo(m_session.filePath);
+    m_signalChartWidget->updatePlot(
+        result.rawSegment,
+        QString("Signal plot - %1").arg(fileInfo.fileName())
+        );
 }
 
 void WavAnalysisTab::updateSpectrumPlot(const AnalysisResult& result)
 {
-    resetSpectrumPlot();
-
-    const auto& freqs = result.spectrum.frequencies;
-    const auto& mags = result.spectrum.magnitudes;
-
-    if (freqs.empty() || mags.empty() || freqs.size() != mags.size()) {
+    if (m_spectrumChartWidget == nullptr) {
         return;
     }
 
-    if (m_spectrumChartView != nullptr && m_spectrumChartView->chart() != nullptr) {
-        const QFileInfo fileInfo(m_session.filePath);
-        m_spectrumChartView->chart()->setTitle(QString("Spectrum plot - %1").arg(fileInfo.fileName()));
-    }
-
-    constexpr std::size_t kMaxPoints = 4000;
-    const std::size_t step =
-        std::max<std::size_t>(1, (freqs.size() + kMaxPoints - 1) / kMaxPoints);
-
-    QVector<QPointF> pts;
-    pts.reserve(static_cast<int>((freqs.size() + step - 1) / step));
-
-    double minX = freqs.front();
-    double maxX = freqs.front();
-    double minY = mags.front();
-    double maxY = mags.front();
-
-    for (std::size_t i = 0; i < freqs.size(); i += step) {
-        const double x = freqs[i];
-        const double y = mags[i];
-
-        pts.append(QPointF(static_cast<qreal>(x), static_cast<qreal>(y)));
-
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-    }
-
-    if (pts.isEmpty()) {
-        return;
-    }
-
-    m_spectrumSeries->replace(pts);
-
-    if (minX == maxX) {
-        const double right = (maxX == 0.0) ? 1.0 : maxX * 1;
-        m_spectrumAxisX->setRange(0.0, right);
-    } else {
-        const double padX = (maxX - minX) * 0;
-        m_spectrumAxisX->setRange(0.0, maxX + padX);
-    }
-
-    if (minY == maxY) {
-        const double padY = (minY == 0.0) ? 1.0 : std::abs(minY) * 0.1;
-        m_spectrumAxisY->setRange(minY - padY, maxY + padY);
-    } else {
-        const double padY = (maxY - minY) * 0.05;
-        m_spectrumAxisY->setRange(minY - padY, maxY + padY);
-    }
+    const QFileInfo fileInfo(m_session.filePath);
+    m_spectrumChartWidget->updatePlot(
+        result.spectrum.frequencies,
+        result.spectrum.magnitudes,
+        QString("Spectrum plot - %1").arg(fileInfo.fileName())
+        );
 }
 
 } // namespace pdv
