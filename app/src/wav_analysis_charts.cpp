@@ -22,6 +22,11 @@ SignalChartWidget::SignalChartWidget(QWidget* parent)
     chart->legend()->hide();
     chart->setTitle("Signal");
 
+    QFont titleFont = chart->titleFont();
+    titleFont.setPointSize(titleFont.pointSize() + 2);
+    titleFont.setBold(true);
+    chart->setTitleFont(titleFont);
+
     m_axisX = new QValueAxis(this);
     m_axisY = new QValueAxis(this);
 
@@ -29,6 +34,8 @@ SignalChartWidget::SignalChartWidget(QWidget* parent)
     m_axisY->setTitleText("Amplitude");
     m_axisX->setLabelFormat("%.0f");
     m_axisY->setLabelFormat("%.3f");
+    m_axisX->setTickCount(9);
+    m_axisX->setMinorTickCount(3);
 
     chart->addAxis(m_axisX, Qt::AlignBottom);
     chart->addAxis(m_axisY, Qt::AlignLeft);
@@ -49,7 +56,9 @@ void SignalChartWidget::resetPlot()
     m_axisY->setRange(-1, 1);
 }
 
-void SignalChartWidget::updatePlot(const std::vector<double>& segment, const QString& title)
+void SignalChartWidget::updatePlot(const std::vector<double>& segment,
+                                   const QString& fromInfo,
+                                   const QString& title)
 {
     resetPlot();
 
@@ -57,7 +66,11 @@ void SignalChartWidget::updatePlot(const std::vector<double>& segment, const QSt
         return;
     }
 
-    chart()->setTitle(title);
+    if (fromInfo.isEmpty()) {
+        chart()->setTitle(title);
+    } else {
+        chart()->setTitle(QString("%1 - From sample: %2").arg(title, fromInfo));
+    }
 
     constexpr std::size_t kMaxPoints = 2000;
     const std::size_t step =
@@ -103,6 +116,11 @@ SpectrumChartWidget::SpectrumChartWidget(QWidget* parent)
     chart->legend()->hide();
     chart->setTitle("Spectrum");
 
+    QFont titleFont = chart->titleFont();
+    titleFont.setPointSize(titleFont.pointSize() + 2);
+    titleFont.setBold(true);
+    chart->setTitleFont(titleFont);
+
     m_axisX = new QValueAxis(this);
     m_axisY = new QValueAxis(this);
 
@@ -110,6 +128,8 @@ SpectrumChartWidget::SpectrumChartWidget(QWidget* parent)
     m_axisY->setTitleText("Magnitude");
     m_axisX->setLabelFormat("%.0f");
     m_axisY->setLabelFormat("%.0f");
+    m_axisX->setTickCount(9);
+    m_axisX->setMinorTickCount(2);
 
     chart->addAxis(m_axisX, Qt::AlignBottom);
     chart->addAxis(m_axisY, Qt::AlignLeft);

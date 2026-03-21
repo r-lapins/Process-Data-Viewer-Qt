@@ -16,7 +16,9 @@ public:
     explicit SignalChartWidget(QWidget* parent = nullptr);
 
     void resetPlot();
-    void updatePlot(const std::vector<double>& segment, const QString& title);
+    void updatePlot(const std::vector<double>& segment,
+                    const QString& fromInfo,
+                    const QString& title);
 
 private:
     QLineSeries* m_series = nullptr;
