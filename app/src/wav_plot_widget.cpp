@@ -1,4 +1,4 @@
-#include "pdv/wav_analysis_charts.h"
+#include "pdv/wav_plot_widget.h"
 
 #include <QPointF>
 #include <QVector>
