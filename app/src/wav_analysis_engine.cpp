@@ -31,15 +31,16 @@ WavAnalysisEngine::analyze(const pdt::WavData& wav, const AnalysisSettings& sett
 
     computeBasicStats(result.rawSegment, result);
 
+    using enum SpectrumAlgorithm;
     switch (settings.algorithm) {
-    case SpectrumAlgorithm::Dft:
+    case Dft:
         result.spectrum = pdt::compute_single_sided_spectrum(
             result.processedSegment,
             static_cast<double>(wav.sample_rate)
             );
         break;
 
-    case SpectrumAlgorithm::Fft:
+    case Fft:
         if (!pdt::is_power_of_two(result.processedSegment.size())) {
             return result;
         }
@@ -68,8 +69,10 @@ WavAnalysisEngine::analyze(const pdt::WavData& wav, const AnalysisSettings& sett
     return result;
 }
 
+// Extract analysis window starting at 'from' with length 'bins'.
+// Clamps to available samples to avoid out-of-range access.
 std::vector<double> WavAnalysisEngine::selectSegment(
-    const std::vector<double>& samples,
+    std::span<const double> samples,
     std::size_t from,
     std::size_t bins
     )
@@ -88,7 +91,7 @@ std::vector<double> WavAnalysisEngine::selectSegment(
 }
 
 void WavAnalysisEngine::computeBasicStats(
-    const std::vector<double>& samples,
+    std::span<const double> samples,
     AnalysisResult& result
     )
 {

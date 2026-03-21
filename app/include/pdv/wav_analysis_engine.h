@@ -5,6 +5,7 @@
 #include <pdt/signal/wav_reader.h>
 
 #include <vector>
+#include <span>
 #include <cstddef>
 
 namespace pdv {
@@ -37,17 +38,17 @@ public:
         double stddevValue{0.0};
     };
 
-    static AnalysisResult analyze(const pdt::WavData& wav, const AnalysisSettings& settings);
+    [[nodiscard]] static AnalysisResult analyze(const pdt::WavData& wav, const AnalysisSettings& settings);
 
 private:
-    static std::vector<double> selectSegment(
-        const std::vector<double>& samples,
+    [[nodiscard]] static std::vector<double> selectSegment(
+        std::span<const double> samples,
         std::size_t from,
         std::size_t bins
         );
 
     static void computeBasicStats(
-        const std::vector<double>& samples,
+        std::span<const double> samples,
         AnalysisResult& result
         );
 };

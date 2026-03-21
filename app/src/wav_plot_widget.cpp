@@ -2,6 +2,7 @@
 
 #include <QPointF>
 #include <QVector>
+#include <QFont>
 
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
@@ -56,7 +57,7 @@ void SignalChartWidget::resetPlot()
     m_axisY->setRange(-1, 1);
 }
 
-void SignalChartWidget::updatePlot(const std::vector<double>& segment,
+void SignalChartWidget::updatePlot(std::span<const double> segment,
                                    const QString& fromInfo,
                                    const QString& title)
 {
@@ -72,9 +73,9 @@ void SignalChartWidget::updatePlot(const std::vector<double>& segment,
         chart()->setTitle(QString("%1 - From sample: %2").arg(title, fromInfo));
     }
 
-    constexpr std::size_t kMaxPoints = 2000;
-    const std::size_t step =
-        std::max<std::size_t>(1, (segment.size() + kMaxPoints - 1) / kMaxPoints);
+    // Downsample data to limit number of plotted points (performance)
+    constexpr std::size_t kMaxPoints = 4000;
+    const std::size_t step = std::max<std::size_t>(1, (segment.size() + kMaxPoints - 1) / kMaxPoints);
 
     QVector<QPointF> pts;
     pts.reserve(static_cast<int>((segment.size() + step - 1) / step));
@@ -151,8 +152,8 @@ void SpectrumChartWidget::resetPlot()
 }
 
 void SpectrumChartWidget::updatePlot(
-    const std::vector<double>& frequencies,
-    const std::vector<double>& magnitudes,
+    std::span<const double> frequencies,
+    std::span<const double> magnitudes,
     const QString& title
 )
 {
@@ -164,9 +165,9 @@ void SpectrumChartWidget::updatePlot(
 
     chart()->setTitle(title);
 
+    // Downsample data to limit number of plotted points (performance)
     constexpr std::size_t kMaxPoints = 4000;
-    const std::size_t step =
-        std::max<std::size_t>(1, (frequencies.size() + kMaxPoints - 1) / kMaxPoints);
+    const std::size_t step = std::max<std::size_t>(1, (frequencies.size() + kMaxPoints - 1) / kMaxPoints);
 
     QVector<QPointF> pts;
     pts.reserve(static_cast<int>((frequencies.size() + step - 1) / step));

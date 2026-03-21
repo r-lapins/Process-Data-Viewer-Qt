@@ -16,7 +16,6 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QSpinBox>
-#include <QSplitter>
 #include <QVBoxLayout>
 #include <QStackedWidget>
 
@@ -45,7 +44,7 @@ void WavAnalysisTab::createUi()
     topLayout->addWidget(createControlsPanel(topWidget), 0, Qt::AlignTop);
     topLayout->addWidget(createStatisticsPanel(topWidget), 0, Qt::AlignTop);
     topLayout->addWidget(createAlertsPanel(topWidget), 0, Qt::AlignTop);
-    topLayout->setAlignment(Qt::AlignHCenter);
+    topLayout->addStretch();
 
     topWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
@@ -53,21 +52,17 @@ void WavAnalysisTab::createUi()
     auto* bottomWidget = new QWidget(this);
     auto* bottomLayout = new QVBoxLayout(bottomWidget);
     bottomLayout->setContentsMargins(0, 0, 0, 0);
+    bottomLayout->setSpacing(10);
 
-    m_plotsSplitter = new QSplitter(Qt::Vertical, bottomWidget);
-
-    m_signalPlotContainer = createSignalPlot(m_plotsSplitter);
-    m_spectrumPlotContainer = createSpectrumPlot(m_plotsSplitter);
+    m_signalPlotContainer = createSignalPlot(bottomWidget);
+    m_spectrumPlotContainer = createSpectrumPlot(bottomWidget);
 
     m_signalPlotContainer->setVisible(false);
     m_spectrumPlotContainer->setVisible(false);
 
-    m_plotsSplitter->addWidget(m_signalPlotContainer);
-    m_plotsSplitter->addWidget(m_spectrumPlotContainer);
-    m_plotsSplitter->setStretchFactor(0, 1);
-    m_plotsSplitter->setStretchFactor(1, 1);
-
-    bottomLayout->addWidget(m_plotsSplitter);
+    bottomLayout->addWidget(m_signalPlotContainer);
+    bottomLayout->addWidget(m_spectrumPlotContainer);
+    bottomLayout->addStretch(0);
 
     rootLayout->addWidget(topWidget);
     rootLayout->addWidget(bottomWidget, 1);
@@ -160,9 +155,12 @@ QWidget* WavAnalysisTab::createControlsPanel(QWidget* parent)
     m_showSpectrumButton = new QPushButton("Spectrum", controlsGroup);
 
     m_showSignalButton->setCheckable(true);
-    m_showSpectrumButton->setCheckable(true);
     m_showSignalButton->setChecked(false);
+    m_showSignalButton->setStyleSheet(style);
+
+    m_showSpectrumButton->setCheckable(true);
     m_showSpectrumButton->setChecked(false);
+    m_showSpectrumButton->setStyleSheet(style);
 
     auto* plotToggleWidget = new QWidget(controlsGroup);
     auto* plotToggleLayout = new QHBoxLayout(plotToggleWidget);
@@ -289,8 +287,7 @@ void WavAnalysisTab::triggerAutoRecompute()
 
 std::size_t WavAnalysisTab::selectedBins() const
 {
-    const auto selected =
-        static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    const auto selected = static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
     if (selected == SpectrumAlgorithm::Fft) {
         return static_cast<std::size_t>(m_binsComboBox->currentData().toULongLong());
@@ -312,6 +309,8 @@ void WavAnalysisTab::updateBinsInputMode()
 
 void WavAnalysisTab::rebuildFftBinsCombo()
 {
+    // It generates a list of valid FFT sizes (powers of 2)
+    // and selects the best value based on the current UI state.
     const qulonglong previousValue =
         m_binsComboBox->currentData().toULongLong();
 
@@ -328,10 +327,12 @@ void WavAnalysisTab::rebuildFftBinsCombo()
 
     const std::size_t availableFromZero = samples.size();
 
+    // Build FFT-only bin choices as powers of two up to available sample count
     std::vector<std::size_t> values;
     for (std::size_t value = 1; value <= availableFromZero; value *= 2) {
         values.push_back(value);
         if (value > (std::numeric_limits<std::size_t>::max() / 2)) {
+            // Prevent overflow before the next doubling step
             break;
         }
     }
@@ -355,6 +356,7 @@ void WavAnalysisTab::rebuildFftBinsCombo()
                           : m_binsComboBox->itemData(m_binsComboBox->count() - 1).toULongLong();
     }
 
+    // Pick the largest available value that does not exceed the target
     int bestIndex = 0;
     for (int i = 0; i < m_binsComboBox->count(); ++i) {
         const qulonglong value = m_binsComboBox->itemData(i).toULongLong();
@@ -384,6 +386,7 @@ void WavAnalysisTab::updateFromSpinRange()
     const std::size_t bins = selectedBins();
     const std::size_t total = samples.size();
 
+    // Keep the selected segment fully inside the available sample range
     const int maxFrom = (bins >= total) ? 0 : static_cast<int>(total - bins);
 
     m_fromSpinBox->setRange(0, maxFrom);
@@ -454,6 +457,7 @@ void WavAnalysisTab::resetAlertsPanel()
 
 AnalysisSettings WavAnalysisTab::currentSettings() const
 {
+    // Gather current UI state into analysis settings passed to the engine
     AnalysisSettings s{};
 
     s.algorithm = selectedAlgorithm();
@@ -509,45 +513,49 @@ void WavAnalysisTab::updateAlertsPanel(const AnalysisResult& result)
     }
 }
 
-SpectrumAlgorithm WavAnalysisTab::selectedAlgorithm() const
+SpectrumAlgorithm WavAnalysisTab::selectedAlgorithm() const noexcept
 {
     return static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 }
 
 QString WavAnalysisTab::toString(SpectrumAlgorithm algorithm) const
 {
+    using enum SpectrumAlgorithm;
     switch (algorithm) {
-    case SpectrumAlgorithm::Dft: return "DFT";
-    case SpectrumAlgorithm::Fft: return "FFT";
+    case Dft: return "DFT";
+    case Fft: return "FFT";
     }
     return "-";
 }
 
 QString WavAnalysisTab::toString(pdt::WindowType window) const
 {
+    using enum pdt::WindowType;
     switch (window) {
-    case pdt::WindowType::Hann: return "Hann";
-    case pdt::WindowType::Hamming: return "Hamming";
+    case Hann: return "Hann";
+    case Hamming: return "Hamming";
     }
     return "-";
 }
 
 QString WavAnalysisTab::toString(pdt::PeakDetectionMode mode) const
 {
+    using enum pdt::PeakDetectionMode;
     switch (mode) {
-    case pdt::PeakDetectionMode::ThresholdOnly: return "Threshold-Only";
-    case pdt::PeakDetectionMode::LocalMaxima: return "Local-Maxima";
+    case ThresholdOnly: return "Threshold-Only";
+    case LocalMaxima: return "Local-Maxima";
     }
     return "-";
 }
 
-bool WavAnalysisTab::useWindow() const
+bool WavAnalysisTab::useWindow() const noexcept
 {
     return m_windowComboBox->currentData().toInt() != -1;
 }
 
 void WavAnalysisTab::updateFromSpinStep()
 {
+    // Scale navigation step with segment size to make larger windows easier to browse
     const std::size_t bins = selectedBins();
     const int step = std::max<int>(1, static_cast<int>(bins / 32));
     m_fromSpinBox->setSingleStep(step);
@@ -555,29 +563,18 @@ void WavAnalysisTab::updateFromSpinStep()
 
 void WavAnalysisTab::updatePlotVisibility()
 {
+    // Show only plots explicitly enabled by the user
     const bool signalVisible =
         (m_showSignalButton != nullptr && m_showSignalButton->isChecked());
     const bool spectrumVisible =
         (m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
 
     if (m_signalPlotContainer != nullptr) {
-        m_signalPlotContainer->setVisible(m_showSignalButton != nullptr && m_showSignalButton->isChecked());
+        m_signalPlotContainer->setVisible(signalVisible);
     }
 
     if (m_spectrumPlotContainer != nullptr) {
-        m_spectrumPlotContainer->setVisible(m_showSpectrumButton != nullptr && m_showSpectrumButton->isChecked());
-    }
-
-    if (m_plotsSplitter != nullptr) {
-        if (signalVisible && spectrumVisible) {
-            m_plotsSplitter->setSizes({1, 1});
-        } else if (signalVisible) {
-            m_plotsSplitter->setSizes({1, 0});
-        } else if (spectrumVisible) {
-            m_plotsSplitter->setSizes({0, 1});
-        } else {
-            m_plotsSplitter->setSizes({0, 0});
-        }
+        m_spectrumPlotContainer->setVisible(spectrumVisible);
     }
 
     updateGeometry();

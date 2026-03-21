@@ -1,10 +1,13 @@
 #pragma once
 
 #include <QtCharts/QChartView>
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QValueAxis>
 
-#include <vector>
+#include <span>
+
+class QValueAxis;
+class QLineSeries;
+class QWidget;
+class QString;
 
 namespace pdv {
 
@@ -16,7 +19,7 @@ public:
     explicit SignalChartWidget(QWidget* parent = nullptr);
 
     void resetPlot();
-    void updatePlot(const std::vector<double>& segment,
+    void updatePlot(std::span<const double> segment,
                     const QString& fromInfo,
                     const QString& title);
 
@@ -35,8 +38,8 @@ public:
 
     void resetPlot();
     void updatePlot(
-        const std::vector<double>& frequencies,
-        const std::vector<double>& magnitudes,
+        std::span<const double> frequencies,
+        std::span<const double> magnitudes,
         const QString& title
         );
 

@@ -11,7 +11,6 @@ class QSpinBox;
 class QDoubleSpinBox;
 class QCheckBox;
 class QStackedWidget;
-class QSplitter;
 
 namespace pdv {
 
@@ -44,10 +43,10 @@ private:
     void triggerAutoRecompute();
 
     // analysis
-    std::size_t selectedBins() const;
-    SpectrumAlgorithm selectedAlgorithm() const;
-    AnalysisSettings currentSettings() const;
-    bool useWindow() const;
+    [[nodiscard]] std::size_t selectedBins() const;
+    [[nodiscard]] SpectrumAlgorithm selectedAlgorithm() const noexcept;
+    [[nodiscard]] AnalysisSettings currentSettings() const;
+    [[nodiscard]] bool useWindow() const noexcept;
 
     // ui updates
     void updateStatisticsPanel(const AnalysisResult& result);
@@ -109,7 +108,6 @@ private:
 
     QWidget* m_signalPlotContainer = nullptr;
     QWidget* m_spectrumPlotContainer = nullptr;
-    QSplitter* m_plotsSplitter = nullptr;
 };
 
 } // namespace pdv
