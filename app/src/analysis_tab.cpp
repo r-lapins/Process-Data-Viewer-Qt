@@ -25,14 +25,15 @@ const SessionData& AnalysisTab::session() const noexcept
 
 AnalysisTab* AnalysisTab::create(const SessionData& session, QWidget* parent)
 {
+    using enum SessionData::FileKind;
     switch (session.kind) {
-    case SessionData::FileKind::Csv:
+    case Csv:
         return new CsvAnalysisTab(session, parent);
 
-    case SessionData::FileKind::Wav:
+    case Wav:
         return new WavAnalysisTab(session, parent);
 
-    case SessionData::FileKind::Unknown:
+    case Unknown:
     default:
         return nullptr;
     }

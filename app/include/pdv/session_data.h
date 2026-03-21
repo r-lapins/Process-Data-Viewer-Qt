@@ -2,7 +2,8 @@
 
 #include <QString>
 
-#include <optional>
+#include <vector>
+#include <cstddef>
 
 #include <pdt/core/dataset.h>
 #include <pdt/signal/wav_reader.h>

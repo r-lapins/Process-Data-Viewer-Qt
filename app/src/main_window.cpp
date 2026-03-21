@@ -11,8 +11,6 @@
 #include <QToolBar>
 #include <QTimer>
 #include <QLayout>
-#include <QScreen>
-#include <QGuiApplication>
 #include <QtConcurrent/QtConcurrentRun>
 
 namespace pdv {

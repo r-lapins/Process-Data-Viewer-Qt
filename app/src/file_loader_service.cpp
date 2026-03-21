@@ -13,14 +13,15 @@ namespace pdv {
 
 LoadResult FileLoaderService::loadFile(const QString &filePath) const
 {
+    using enum SessionData::FileKind;
     switch (detectFileKind(filePath)) {
-    case SessionData::FileKind::Csv:
+    case Csv:
         return loadCsv(filePath);
 
-    case SessionData::FileKind::Wav:
+    case Wav:
         return loadWav(filePath);
 
-    case SessionData::FileKind::Unknown:
+    case Unknown:
     default:
         return LoadResult{
             .success = false,

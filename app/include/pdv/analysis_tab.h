@@ -14,10 +14,20 @@ public:
     explicit AnalysisTab(const SessionData& session, QWidget* parent = nullptr);
     ~AnalysisTab() override = default;
 
-    QString tabTitle() const;
-    const SessionData& session() const noexcept;
+    [[nodiscard]] QString tabTitle() const;
+    [[nodiscard]] const SessionData& session() const noexcept;
 
-    static AnalysisTab* create(const SessionData& session, QWidget* parent = nullptr);
+    [[nodiscard]] static AnalysisTab* create(const SessionData& session, QWidget* parent = nullptr);
+
+    QString style = R"(
+    QPushButton {
+        padding: 4px 10px;
+    }
+    QPushButton:checked {
+        background-color: #2E7D32;
+        color: white;
+        border: 1px solid #1B5E20;
+    })";
 
 signals:
     void preferredSizeChanged();

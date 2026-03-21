@@ -5,6 +5,7 @@
 
 class QAction;
 class QTabWidget;
+class QString;
 
 #include "pdv/file_loader_service.h"
 

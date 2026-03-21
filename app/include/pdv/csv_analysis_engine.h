@@ -7,6 +7,7 @@
 #include <vector>
 #include <optional>
 #include <cstddef>
+#include <chrono>
 
 namespace pdv {
 
@@ -42,11 +43,11 @@ public:
         bool invalidTimeRange{false};
     };
 
-    static AnalysisResult analyze(const pdt::DataSet& dataSet, const AnalysisSettings& settings);
+    [[nodiscard]] static AnalysisResult analyze(const pdt::DataSet& dataSet, const AnalysisSettings& settings);
 
 private:
-    static bool hasInvalidTimeRange(const AnalysisSettings& settings);
-    static pdt::FilterOptions toFilterOptions(const AnalysisSettings& settings);
+    [[nodiscard]] static bool hasInvalidTimeRange(const AnalysisSettings& settings);
+    [[nodiscard]] static pdt::FilterOptions toFilterOptions(const AnalysisSettings& settings);
     static void computeBasicStats(const pdt::DataSet& dataSet, AnalysisResult& result);
 };
 
