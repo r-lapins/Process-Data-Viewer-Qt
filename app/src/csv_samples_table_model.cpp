@@ -16,7 +16,7 @@ QString formatTimestamp(std::chrono::sys_seconds ts)
     std::ostringstream oss;
     oss << std::setw(4) << std::setfill('0') << int(ymd.year()) << "-"
         << std::setw(2) << unsigned(ymd.month()) << "-"
-        << std::setw(2) << unsigned(ymd.day()) << "T"
+        << std::setw(2) << unsigned(ymd.day()) << " - "
         << std::setw(2) << timeOfDay.hours().count() << ":"
         << std::setw(2) << timeOfDay.minutes().count() << ":"
         << std::setw(2) << timeOfDay.seconds().count();
