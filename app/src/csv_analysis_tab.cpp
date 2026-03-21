@@ -1,16 +1,16 @@
 #include "pdv/csv_analysis_tab.h"
-
-#include <pdt/core/anomaly.h>
+#include "pdv/csv_plot_widget.h"
 
 #include <set>
+#include <numeric>
 
 #include <QDateTime>
 #include <QFormLayout>
+#include <QFileInfo>
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QLabel>
 #include <QListWidget>
-#include <QSplitter>
 #include <QTableView>
 #include <QVBoxLayout>
 #include <QCheckBox>
@@ -19,6 +19,7 @@
 #include <QDoubleSpinBox>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QHBoxLayout>
 
 namespace pdv {
 
@@ -26,42 +27,45 @@ CsvAnalysisTab::CsvAnalysisTab(const SessionData& session, QWidget* parent)
     : AnalysisTab(session, parent)
 {
     m_csvSamplesModel = new CsvSamplesTableModel(this);
+
     createUi();
+    populateSensorOptions();
+    initializeDateControls();
+    connectControls();
+    recomputeAnalysis();
+    updatePlotVisibility();
 }
 
 void CsvAnalysisTab::createUi()
 {
     auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(6, 6, 6, 6);
+    rootLayout->setSpacing(10);
 
-    auto* splitter = new QSplitter(Qt::Horizontal, this);
+    // ===== TOP
+    auto* topWidget = new QWidget(this);
+    auto* topLayout = new QHBoxLayout(topWidget);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(10);
 
-    splitter->addWidget(createDataPanel(splitter));
-    splitter->addWidget(createControlsPanel(splitter));
+    auto* dataPanel = createDataPanel(topWidget);
+    auto* controlsPanel = createControlsPanel(topWidget);
+    auto* statsPanel = createStatisticsPanel(topWidget);
+    auto* alertsPanel = createAlertsPanel(topWidget);
 
-    auto* rightPanel = new QWidget(splitter);
-    auto* rightLayout = new QVBoxLayout(rightPanel);
-    rightLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->addWidget(controlsPanel, 0, Qt::AlignTop);
+    topLayout->addWidget(statsPanel, 0, Qt::AlignTop);
+    topLayout->addWidget(dataPanel, 1);
+    topLayout->addWidget(alertsPanel, 0, Qt::AlignTop);
 
-    rightLayout->addWidget(createStatisticsPanel(rightPanel));
-    rightLayout->addWidget(createAlertsPanel(rightPanel));
+    // ===== BOTTOM
+    m_plotContainer = createPlotPanel(this);
+    m_plotContainer->setVisible(false);
 
-    splitter->addWidget(rightPanel);
-
-    splitter->setStretchFactor(0, 4);
-    splitter->setStretchFactor(1, 2);
-    splitter->setStretchFactor(2, 3);
-
-    rootLayout->addWidget(splitter);
-
-    rightPanel->setFixedWidth(400);
+    rootLayout->addWidget(topWidget, 1);
+    rootLayout->addWidget(m_plotContainer, 0);
 
     rootLayout->setSizeConstraint(QLayout::SetMinimumSize);
-
-    populateSensorOptions();
-    initializeDateControls();
-    connectControls();
-    recomputeAnalysis();
 }
 
 QWidget* CsvAnalysisTab::createDataPanel(QWidget* parent)
@@ -85,8 +89,10 @@ QWidget* CsvAnalysisTab::createDataPanel(QWidget* parent)
     dataLayout->addWidget(m_samplesTableView);
 
     m_samplesTableView->hide();
+    m_samplesTableView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    dataGroup->setMinimumWidth(380);
+    dataGroup->setMinimumWidth(400);
+    dataGroup->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     return dataGroup;
 }
@@ -151,6 +157,11 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_showSkippedRowsCheckBox = new QCheckBox("Show skipped?", controlsGroup);
     m_showSkippedRowsCheckBox->setChecked(false);
 
+    m_showPlotButton = new QPushButton("Plot", controlsGroup);
+    m_showPlotButton->setCheckable(true);
+    m_showPlotButton->setChecked(false);
+    m_showPlotButton->setStyleSheet(style);
+
     controlsLayout->addRow("Sensor filter:", m_useSensorCheckBox);
     controlsLayout->addRow("Sensor:", m_sensorComboBox);
     controlsLayout->addRow("From filter:", m_useFromCheckBox);
@@ -161,6 +172,7 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     controlsLayout->addRow("Top anomalies:", m_topNSpinBox);
     controlsLayout->addRow("", m_recomputeButton);
     controlsLayout->addRow("", m_autoUpdateCheckBox);
+    controlsLayout->addRow("Plot:", m_showPlotButton);
     controlsLayout->addRow("", m_showSkippedRowsCheckBox);
 
     controlsGroup->setFixedWidth(320);
@@ -230,6 +242,9 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     statsLayout->setLabelAlignment(Qt::AlignLeft);
     statsLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
 
+    statsGroup->setFixedWidth(280);
+    statsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+
     return statsGroup;
 }
 
@@ -240,6 +255,10 @@ QWidget* CsvAnalysisTab::createAlertsPanel(QWidget* parent)
 
     m_alertsListWidget = new QListWidget(alertsGroup);
     alertsLayout->addWidget(m_alertsListWidget);
+
+    alertsGroup->setFixedWidth(375);
+    alertsGroup->setFixedHeight(425);
+    alertsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     return alertsGroup;
 }
@@ -261,7 +280,7 @@ void CsvAnalysisTab::resetStatisticsPanel()
     m_statsDetectedAnomaliesValueLabel->setText("-");
 }
 
-void CsvAnalysisTab::updateStatisticsPanel(const pdt::DataSet& filtered)
+void CsvAnalysisTab::updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResult& result)
 {
     resetStatisticsPanel();
 
@@ -269,29 +288,21 @@ void CsvAnalysisTab::updateStatisticsPanel(const pdt::DataSet& filtered)
         return;
     }
 
-    const auto settings = currentSettings();
-    const auto stats = filtered.stats();
-    const auto summary = pdt::detect_zscore_global(filtered, settings.zThreshold, settings.topN);
+    const auto& settings = result.usedSettings;
 
     m_statsFileTypeValueLabel->setText("CSV");
+    m_statsSkippedValueLabel->setText(QString::number(static_cast<qulonglong>(m_session.skipped)));
+    m_statsTotalValueLabel->setText(QString::number(static_cast<qulonglong>(m_session.dataSet->size())));
+    m_statsFilteredValueLabel->setText(QString::number(static_cast<qulonglong>(result.filteredDataSet.size())));
 
-    m_statsSkippedValueLabel->setText(
-        QString::number(static_cast<qulonglong>(m_session.skipped))
-        );
-
-    m_statsTotalValueLabel->setText(
-        QString::number(static_cast<qulonglong>(m_session.dataSet->size()))
-        );
-    m_statsFilteredValueLabel->setText(
-        QString::number(static_cast<qulonglong>(filtered.size()))
-        );
-
-    if (!m_session.dataSet.has_value() || m_session.dataSet->empty()) {
+    if (m_session.dataSet->empty()) {
         m_statsSensorValueLabel->setText("-");
-    } else if (!settings.useSensor) {
+    }
+    else if (!settings.useSensor) {
         m_statsSensorValueLabel->setText("All");
-    } else {
-        m_statsSensorValueLabel->setText(settings.sensor);
+    }
+    else {
+        m_statsSensorValueLabel->setText(QString::fromStdString(settings.sensor));
     }
 
     if (settings.useFrom && settings.from.has_value()) {
@@ -299,10 +310,9 @@ void CsvAnalysisTab::updateStatisticsPanel(const pdt::DataSet& filtered)
                               settings.from->time_since_epoch()
                               ).count();
 
-        m_statsFromValueLabel->setText(
-            QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss")
-            );
-    } else {
+        m_statsFromValueLabel->setText(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss"));
+    }
+    else {
         m_statsFromValueLabel->setText("-");
     }
 
@@ -319,13 +329,13 @@ void CsvAnalysisTab::updateStatisticsPanel(const pdt::DataSet& filtered)
     }
 
     m_statsDetectedAnomaliesValueLabel->setText(
-        QString::number(static_cast<qulonglong>(summary.count))
+        QString::number(static_cast<qulonglong>(result.anomalySummary.count))
         );
 
-    m_statsMinValueLabel->setText(QString::number(stats.min, 'f', 1));
-    m_statsMaxValueLabel->setText(QString::number(stats.max, 'f', 1));
-    m_statsMeanValueLabel->setText(QString::number(stats.mean, 'f', 2));
-    m_statsStddevValueLabel->setText(QString::number(stats.stddev, 'f', 2));
+    m_statsMinValueLabel->setText(QString::number(result.minValue, 'f', 1));
+    m_statsMaxValueLabel->setText(QString::number(result.maxValue, 'f', 1));
+    m_statsMeanValueLabel->setText(QString::number(result.meanValue, 'f', 2));
+    m_statsStddevValueLabel->setText(QString::number(result.stddevValue, 'f', 2));
     m_statsZThresholdValueLabel->setText(QString::number(settings.zThreshold, 'f', 2));
 }
 
@@ -335,7 +345,7 @@ void CsvAnalysisTab::resetAlertsPanel()
     m_alertsListWidget->addItem("No alerts");
 }
 
-void CsvAnalysisTab::updateAlertsPanel(const pdt::DataSet& filtered)
+void CsvAnalysisTab::updateAlertsPanel(const CsvAnalysisEngine::AnalysisResult& result)
 {
     resetAlertsPanel();
 
@@ -343,28 +353,19 @@ void CsvAnalysisTab::updateAlertsPanel(const pdt::DataSet& filtered)
         return;
     }
 
-    if (hasInvalidTimeRange()) {
+    if (result.invalidTimeRange) {
         m_alertsListWidget->clear();
         m_alertsListWidget->addItem("Invalid time range: From is later than To");
         return;
     }
 
-    const auto settings = currentSettings();
-    const auto summary = pdt::detect_zscore_global(filtered, settings.zThreshold, settings.topN);
-
     m_alertsListWidget->clear();
 
-    if (filtered.empty()) {
-        m_samplesTableView->hide();
-        m_dataPlaceholderLabel->setText("No rows match current filters");
-        m_dataPlaceholderLabel->show();
+    if (result.filteredDataSet.empty() || result.anomalySummary.top.empty()) {
         m_alertsListWidget->addItem("No anomalies detected");
-
-    } else if (summary.top.empty()) {
-        m_alertsListWidget->addItem("No anomalies detected");
-
-    } else {
-        for (const auto& a : summary.top) {
+    }
+    else {
+        for (const auto& a : result.anomalySummary.top) {
             const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
             const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts));
             const QString dateText = dt.date().toString("yyyy-MM-dd");
@@ -377,7 +378,7 @@ void CsvAnalysisTab::updateAlertsPanel(const pdt::DataSet& filtered)
                          QString::fromStdString(a.sensor),
                          QString::number(a.value, 'f', 1),
                          QString::number(a.zscore, 'f', 2))
-                );
+            );
         }
     }
 
@@ -462,14 +463,13 @@ void CsvAnalysisTab::connectControls()
         m_recomputeButton->setEnabled(!checked);
     });
 
-    connect(m_recomputeButton, &QPushButton::clicked,
-            this, &CsvAnalysisTab::recomputeAnalysis);
-
     auto trigger = [this]() {
         if (m_autoUpdateCheckBox->isChecked()) {
             recomputeAnalysis();
         }
     };
+
+    connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisTab::recomputeAnalysis);
 
     connect(m_useSensorCheckBox, &QCheckBox::toggled, this, trigger);
     connect(m_sensorComboBox, &QComboBox::currentIndexChanged, this, trigger);
@@ -481,18 +481,30 @@ void CsvAnalysisTab::connectControls()
     connect(m_toTimeEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
     connect(m_zThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
     connect(m_topNSpinBox, &QSpinBox::valueChanged, this, trigger);
-    connect(m_showSkippedRowsCheckBox, &QCheckBox::toggled, this, trigger);
 
     connect(m_useSensorCheckBox, &QCheckBox::toggled, m_sensorComboBox, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromDateEdit, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromTimeEdit, &QWidget::setEnabled);
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toDateEdit, &QWidget::setEnabled);
-    connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);    
+    connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);
+
+    connect(m_showPlotButton, &QPushButton::toggled, this, [this]() {
+        updatePlotVisibility();
+        if (m_lastResult.has_value()) {
+            updatePlotPanel(*m_lastResult);
+        }
+    });
+
+    connect(m_showSkippedRowsCheckBox, &QCheckBox::toggled, this, [this]() {
+        if (m_lastResult.has_value()) {
+            updateAlertsPanel(*m_lastResult);
+        }
+    });
 }
 
 void CsvAnalysisTab::displaySessionData(const pdt::DataSet& filtered)
 {
-    if (!m_session.dataSet.has_value()) {
+    if (m_csvSamplesModel == nullptr || m_samplesTableView == nullptr || m_dataPlaceholderLabel == nullptr) {
         return;
     }
 
@@ -502,65 +514,32 @@ void CsvAnalysisTab::displaySessionData(const pdt::DataSet& filtered)
 
     m_samplesTableView->resizeColumnsToContents();
 
-    const int col = 0;
-    m_samplesTableView->setColumnWidth(col, m_samplesTableView->columnWidth(col) + 20);
+    m_samplesTableView->setColumnWidth(0, m_samplesTableView->columnWidth(0) + 20);
+    m_samplesTableView->setColumnWidth(1, m_samplesTableView->columnWidth(1) + 20);
 }
 
 void CsvAnalysisTab::recomputeAnalysis()
 {
-    if (hasInvalidTimeRange()) {
-        if (m_csvSamplesModel != nullptr) {
-            m_csvSamplesModel->clear();
-        }
+    CsvAnalysisEngine::AnalysisResult result{};
 
-        if (m_dataPlaceholderLabel != nullptr) {
-            m_dataPlaceholderLabel->setText("Invalid time range");
-            m_dataPlaceholderLabel->show();
-        }
-
-        if (m_samplesTableView != nullptr) {
-            m_samplesTableView->hide();
-        }
-
-        resetStatisticsPanel();
-        updateAlertsPanel(pdt::DataSet{});
-        return;
+    if (m_session.dataSet.has_value()) {
+        result = CsvAnalysisEngine::analyze(*m_session.dataSet, currentSettings());
     }
 
-    const auto filtered = m_session.dataSet->filter(currentFilterOptions());
+    m_lastResult = result;
 
-    displaySessionData(filtered);
-    updateStatisticsPanel(filtered);
-    updateAlertsPanel(filtered);
+    updateDataView(result);
+    updateStatisticsPanel(result);
+    updateAlertsPanel(result);
+    updatePlotPanel(result);
 }
 
-pdt::FilterOptions CsvAnalysisTab::currentFilterOptions() const
+CsvAnalysisEngine::AnalysisSettings CsvAnalysisTab::currentSettings() const
 {
-    const auto settings = currentSettings();
+    CsvAnalysisEngine::AnalysisSettings s{};
 
-    pdt::FilterOptions filter;
-
-    if (settings.useSensor) {
-        filter.sensor = settings.sensor.toStdString();
-    }
-
-    if (settings.useFrom) {
-        filter.from = settings.from;
-    }
-
-    if (settings.useTo) {
-        filter.to = settings.to;
-    }
-
-    return filter;
-}
-
-CsvAnalysisTab::AnalysisSettings CsvAnalysisTab::currentSettings() const
-{
-    AnalysisSettings s{};
-
-    s.sensor = m_sensorComboBox->currentText().trimmed();
-    s.useSensor = m_useSensorCheckBox->isChecked() && !s.sensor.isEmpty();
+    s.sensor = m_sensorComboBox->currentText().trimmed().toStdString();
+    s.useSensor = m_useSensorCheckBox->isChecked() && !s.sensor.empty();
 
     s.useFrom = m_useFromCheckBox->isChecked();
     s.useTo = m_useToCheckBox->isChecked();
@@ -581,12 +560,101 @@ CsvAnalysisTab::AnalysisSettings CsvAnalysisTab::currentSettings() const
     return s;
 }
 
-bool CsvAnalysisTab::hasInvalidTimeRange() const
+void CsvAnalysisTab::updatePlotVisibility()
 {
-    const auto settings = currentSettings();
-    return settings.useFrom && settings.useTo &&
-           settings.from.has_value() && settings.to.has_value() &&
-           *settings.from > *settings.to;
+    const bool visible = (m_showPlotButton != nullptr && m_showPlotButton->isChecked());
+
+    if (m_plotContainer != nullptr) {
+        m_plotContainer->setVisible(visible);
+    }
+
+    updateGeometry();
+    emit preferredSizeChanged();
+}
+
+void CsvAnalysisTab::updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& result)
+{
+    if (m_csvPlotWidget == nullptr) {
+        return;
+    }
+
+    if (m_showPlotButton == nullptr || !m_showPlotButton->isChecked()) {
+        return;
+    }
+
+    if (result.invalidTimeRange || result.filteredDataSet.empty()) {
+        m_csvPlotWidget->resetPlot();
+        return;
+    }
+
+    const auto samples = result.filteredDataSet.samples();
+    if (samples.empty()) {
+        m_csvPlotWidget->resetPlot();
+        return;
+    }
+
+    // X axis: sequential sample indices (1, 2, ..., N)
+    std::vector<double> xValues(samples.size());
+    std::iota(xValues.begin(), xValues.end(), 1.0);
+
+    // Y axis: measurement values extracted from samples
+    std::vector<double> yValues(samples.size());
+    std::ranges::transform(samples, yValues.begin(),
+                           [](const auto& s) { return s.value; });
+
+    // X positions of detected anomalies (indices -> 1-based sample number)
+    std::vector<double> markerXValues(result.anomalyIndices.size());
+    std::ranges::transform(result.anomalyIndices, markerXValues.begin(),
+                           [](std::size_t idx) { return static_cast<double>(idx + 1); });
+
+    const QFileInfo fileInfo(m_session.filePath);
+    m_csvPlotWidget->updatePlotWithMarkers(
+        xValues,
+        yValues,
+        markerXValues,
+        result.meanValue,
+        QString("CSV plot - %1").arg(fileInfo.fileName())
+        );
+}
+
+void CsvAnalysisTab::updateDataView(const CsvAnalysisEngine::AnalysisResult& result)
+{
+    if (m_csvSamplesModel == nullptr ||
+        m_dataPlaceholderLabel == nullptr ||
+        m_samplesTableView == nullptr) {
+        return;
+    }
+
+    if (result.invalidTimeRange) {
+        m_csvSamplesModel->clear();
+        m_dataPlaceholderLabel->setText("Invalid time range");
+        m_dataPlaceholderLabel->show();
+        m_samplesTableView->hide();
+        return;
+    }
+
+    if (result.filteredDataSet.empty()) {
+        m_csvSamplesModel->clear();
+        m_dataPlaceholderLabel->setText("No rows match current filters");
+        m_dataPlaceholderLabel->show();
+        m_samplesTableView->hide();
+        return;
+    }
+
+    displaySessionData(result.filteredDataSet);
+}
+
+QGroupBox* CsvAnalysisTab::createPlotPanel(QWidget* parent)
+{
+    auto* plotGroup = new QGroupBox(parent);
+    auto* plotLayout = new QVBoxLayout(plotGroup);
+
+    m_csvPlotWidget = new CsvPlotWidget(plotGroup);
+    plotLayout->addWidget(m_csvPlotWidget);
+
+    plotGroup->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+    return plotGroup;
 }
 
 } // namespace pdv

@@ -2,6 +2,9 @@
 
 #include "pdv/analysis_tab.h"
 #include "pdv/csv_samples_table_model.h"
+#include "pdv/csv_analysis_engine.h"
+
+#include <optional>
 
 class QLabel;
 class QListWidget;
@@ -13,8 +16,11 @@ class QCheckBox;
 class QComboBox;
 class QDateEdit;
 class QTimeEdit;
+class QGroupBox;
 
 namespace pdv {
+
+class CsvPlotWidget;
 
 class CsvAnalysisTab : public AnalysisTab
 {
@@ -24,22 +30,12 @@ public:
     explicit CsvAnalysisTab(const SessionData& session, QWidget* parent = nullptr);
 
 private:
-    struct AnalysisSettings {
-        QString sensor;
-        bool useSensor{false};
-        bool useFrom{false};
-        bool useTo{false};
-        std::optional<std::chrono::sys_seconds> from;
-        std::optional<std::chrono::sys_seconds> to;
-        double zThreshold{3.0};
-        std::size_t topN{20};
-    };
-
     void createUi();
     QWidget* createDataPanel(QWidget* parent);
     QWidget* createControlsPanel(QWidget* parent);
     QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createAlertsPanel(QWidget* parent);
+    QGroupBox* createPlotPanel(QWidget* parent);
 
     void connectControls();
 
@@ -47,18 +43,20 @@ private:
     void recomputeAnalysis();
 
     void resetStatisticsPanel();
-    void updateStatisticsPanel(const pdt::DataSet& filtered);
+    void updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResult& result);
 
     void resetAlertsPanel();
-    void updateAlertsPanel(const pdt::DataSet& filtered);
+    void updateAlertsPanel(const CsvAnalysisEngine::AnalysisResult& result);
 
     void populateSensorOptions();
     void initializeDateControls();
 
-    bool hasInvalidTimeRange() const;
+    void updatePlotVisibility();
+    void updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& result);
 
-    AnalysisSettings currentSettings() const;
-    pdt::FilterOptions currentFilterOptions() const;
+    void updateDataView(const CsvAnalysisEngine::AnalysisResult& result);
+
+    [[nodiscard]] CsvAnalysisEngine::AnalysisSettings currentSettings() const;
 
     QLabel* m_dataPlaceholderLabel = nullptr;
     QTableView* m_samplesTableView = nullptr;
@@ -76,6 +74,10 @@ private:
     QDoubleSpinBox* m_zThresholdSpinBox = nullptr;
     QSpinBox* m_topNSpinBox = nullptr;
     QPushButton* m_recomputeButton = nullptr;
+    QPushButton* m_showPlotButton = nullptr;
+
+    QWidget* m_plotContainer = nullptr;
+    CsvPlotWidget* m_csvPlotWidget = nullptr;
 
     QLabel* m_statsFileTypeValueLabel = nullptr;
     QLabel* m_statsMinValueLabel = nullptr;
@@ -95,6 +97,8 @@ private:
     QListWidget* m_alertsListWidget = nullptr;
 
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
+
+    std::optional<CsvAnalysisEngine::AnalysisResult> m_lastResult;
 };
 
 } // namespace pdv

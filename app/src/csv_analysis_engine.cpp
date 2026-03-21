@@ -32,6 +32,7 @@ CsvAnalysisEngine::analyze(const pdt::DataSet& dataSet, const AnalysisSettings& 
     for (std::size_t i = 0; i < samples.size(); ++i) {
         const auto& sample = samples[i];
 
+        // Match anomaly entries back to original sample indices
         for (const auto& anomaly : result.anomalySummary.top) {
             if (sample.timestamp == anomaly.timestamp &&
                 sample.sensor == anomaly.sensor &&

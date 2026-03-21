@@ -6,6 +6,7 @@ set(SOURCES
 
     src/csv_samples_table_model.cpp
     src/csv_analysis_tab.cpp
+    src/csv_analysis_engine.cpp
     src/csv_plot_widget.cpp
 
     src/wav_analysis_tab.cpp
@@ -21,6 +22,7 @@ set(HEADERS
 
     include/pdv/csv_samples_table_model.h
     include/pdv/csv_analysis_tab.h
+    include/pdv/csv_analysis_engine.h
     include/pdv/csv_plot_widget.h
 
     include/pdv/wav_analysis_tab.h
