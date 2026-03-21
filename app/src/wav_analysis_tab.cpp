@@ -549,7 +549,7 @@ bool WavAnalysisTab::useWindow() const
 void WavAnalysisTab::updateFromSpinStep()
 {
     const std::size_t bins = selectedBins();
-    const int step = std::max<int>(1, static_cast<int>(bins / 10));
+    const int step = std::max<int>(1, static_cast<int>(bins / 32));
     m_fromSpinBox->setSingleStep(step);
 }
 
@@ -605,6 +605,7 @@ void WavAnalysisTab::updateSignalPlot(const AnalysisResult& result)
     const QFileInfo fileInfo(m_session.filePath);
     m_signalChartWidget->updatePlot(
         result.rawSegment,
+        m_statsUsedFromValueLabel->text(),
         QString("Signal plot - %1").arg(fileInfo.fileName())
         );
 }
