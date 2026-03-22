@@ -21,9 +21,10 @@ CsvAnalysisEngine::analyze(const pdt::DataSet& dataSet, const AnalysisSettings& 
 
     computeBasicStats(result.filteredDataSet, result);
 
-    result.anomalySummary = pdt::detect_zscore_global(
+    result.anomalySummary = pdt::detect_anomalies_global(
         result.filteredDataSet,
-        settings.zThreshold,
+        toPdtMethod(settings.anomalyMethod),
+        settings.anomalyThreshold,
         settings.topN
         );
 
@@ -70,6 +71,23 @@ pdt::FilterOptions CsvAnalysisEngine::toFilterOptions(const AnalysisSettings& se
     }
 
     return filter;
+}
+
+pdt::AnomalyMethod CsvAnalysisEngine::toPdtMethod(AnomalyMethod method)
+{
+    using GuiMethod = AnomalyMethod;
+    using PdtMethod = pdt::AnomalyMethod;
+
+    switch (method) {
+    case GuiMethod::ZScore:
+        return PdtMethod::ZScore;
+    case GuiMethod::IQR:
+        return PdtMethod::IQR;
+    case GuiMethod::MAD:
+        return PdtMethod::MAD;
+    }
+
+    return PdtMethod::ZScore;
 }
 
 void CsvAnalysisEngine::computeBasicStats(

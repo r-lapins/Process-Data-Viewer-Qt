@@ -62,6 +62,7 @@ private:
     QTableView* m_samplesTableView = nullptr;
 
     QComboBox* m_sensorComboBox = nullptr;
+    QComboBox* m_anomalyMethodComboBox = nullptr;
     QDateEdit* m_fromDateEdit = nullptr;
     QTimeEdit* m_fromTimeEdit = nullptr;
     QDateEdit* m_toDateEdit = nullptr;
@@ -71,7 +72,7 @@ private:
     QCheckBox* m_useToCheckBox = nullptr;
     QCheckBox* m_autoUpdateCheckBox = nullptr;
     QCheckBox* m_showSkippedRowsCheckBox = nullptr;
-    QDoubleSpinBox* m_zThresholdSpinBox = nullptr;
+    QDoubleSpinBox* m_anomalyThresholdSpinBox = nullptr;
     QSpinBox* m_topNSpinBox = nullptr;
     QPushButton* m_recomputeButton = nullptr;
     QPushButton* m_showPlotButton = nullptr;
@@ -91,12 +92,15 @@ private:
     QLabel* m_statsSensorValueLabel = nullptr;
     QLabel* m_statsFromValueLabel = nullptr;
     QLabel* m_statsToValueLabel = nullptr;
-    QLabel* m_statsDetectedAnomaliesValueLabel = nullptr;
-    QLabel* m_statsZThresholdValueLabel = nullptr;
 
     QListWidget* m_alertsListWidget = nullptr;
 
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
+
+
+    QLabel* m_statsDetectedAnomaliesValueLabel = nullptr;
+    QLabel* m_statsAnomalyMethodValueLabel = nullptr;
+    QLabel* m_statsAnomalyThresholdValueLabel = nullptr;
 
     std::optional<CsvAnalysisEngine::AnalysisResult> m_lastResult;
 };
