@@ -140,16 +140,16 @@ void CsvAnalysisTab::connectControls()
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::exportJsonRequested, this, &CsvAnalysisTab::exportJsonReport);
 
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showPlotChanged,
-            this, [this](bool) {
+            this, [this]() {
                 updatePlotVisibility();
 
                 if (m_controller != nullptr && m_controller->hasResult()) { renderPlot(m_controller->result()); }
             });
 
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showSkippedRowsChanged,
-            this, [this](bool) {
+            this, [this]() {
                 if (m_controller != nullptr && m_controller->hasResult() && m_resultsPanel != nullptr) {
-                    m_resultsPanel->setResults(m_session, m_controller->result(), m_controlsWidget->showSkippedRowsEnabled());
+                    m_resultsPanel->setResults(m_session, m_controller->result(), m_controlsWidget->isShowSkippedRowsEnabled());
                 }
             });
 
@@ -191,7 +191,7 @@ void CsvAnalysisTab::exportJsonReport()
     }
 
     const auto settings = result.usedSettings;
-    const bool exportPerSensor = (m_controlsWidget != nullptr && m_controlsWidget->exportPerSensorEnabled());
+    const bool exportPerSensor = (m_controlsWidget != nullptr && m_controlsWidget->isExportPerSensorEnabled());
 
     const QFileInfo sourceInfo(m_session.filePath);
     const QString suffix = exportPerSensor ? "_per_sensor_report.json" : "_report.json";
@@ -248,7 +248,7 @@ void CsvAnalysisTab::exportJsonReport()
 
 void CsvAnalysisTab::updatePlotVisibility()
 {
-    const bool visible = (m_controlsWidget != nullptr && m_controlsWidget->showPlotEnabled());
+    const bool visible = (m_controlsWidget != nullptr && m_controlsWidget->isPlotEnabled());
 
     if (m_plotContainer != nullptr) {
         m_plotContainer->setVisible(visible);
@@ -264,7 +264,7 @@ void CsvAnalysisTab::renderPlot(const CsvAnalysisEngine::AnalysisResult& result)
         return;
     }
 
-    if (m_controlsWidget == nullptr || !m_controlsWidget->showPlotEnabled()) {
+    if (m_controlsWidget == nullptr || !m_controlsWidget->isPlotEnabled()) {
         return;
     }
 
@@ -345,7 +345,7 @@ void CsvAnalysisTab::renderResults(const CsvAnalysisEngine::AnalysisResult& resu
         return;
     }
 
-    m_resultsPanel->setResults(m_session, result, m_controlsWidget->showSkippedRowsEnabled());
+    m_resultsPanel->setResults(m_session, result, m_controlsWidget->isShowSkippedRowsEnabled());
 }
 
 } // namespace pdv

@@ -352,22 +352,22 @@ CsvAnalysisEngine::AnalysisSettings CsvAnalysisControlsWidget::settings() const
     return s;
 }
 
-bool CsvAnalysisControlsWidget::autoUpdateEnabled() const noexcept
+bool CsvAnalysisControlsWidget::isAutoUpdateEnabled() const noexcept
 {
     return m_autoUpdateCheckBox->isChecked();
 }
 
-bool CsvAnalysisControlsWidget::showPlotEnabled() const noexcept
+bool CsvAnalysisControlsWidget::isPlotEnabled() const noexcept
 {
     return m_showPlotButton->isChecked();
 }
 
-bool CsvAnalysisControlsWidget::showSkippedRowsEnabled() const noexcept
+bool CsvAnalysisControlsWidget::isShowSkippedRowsEnabled() const noexcept
 {
     return m_showSkippedRowsCheckBox->isChecked();
 }
 
-bool CsvAnalysisControlsWidget::exportPerSensorEnabled() const noexcept
+bool CsvAnalysisControlsWidget::isExportPerSensorEnabled() const noexcept
 {
     return m_exportPerSensorCheckBox->isChecked();
 }

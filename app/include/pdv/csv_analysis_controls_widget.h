@@ -25,10 +25,10 @@ public:
 
     [[nodiscard]] CsvAnalysisEngine::AnalysisSettings settings() const;
 
-    [[nodiscard]] bool autoUpdateEnabled() const noexcept;
-    [[nodiscard]] bool showPlotEnabled() const noexcept;
-    [[nodiscard]] bool showSkippedRowsEnabled() const noexcept;
-    [[nodiscard]] bool exportPerSensorEnabled() const noexcept;
+    [[nodiscard]] bool isAutoUpdateEnabled() const noexcept;
+    [[nodiscard]] bool isPlotEnabled() const noexcept;
+    [[nodiscard]] bool isShowSkippedRowsEnabled() const noexcept;
+    [[nodiscard]] bool isExportPerSensorEnabled() const noexcept;
 
 signals:
     void analysisRequested();
