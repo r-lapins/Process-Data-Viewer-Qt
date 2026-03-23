@@ -49,18 +49,20 @@ private:
     [[nodiscard]] bool useWindow() const noexcept;
 
     // ui updates
-    void updateStatisticsPanel(const AnalysisResult& result);
-    void updateAlertsPanel(const AnalysisResult& result);
-    void updateSignalPlot(const AnalysisResult& result);
-    void updateSpectrumPlot(const AnalysisResult& result);
+    void renderStatistics(const AnalysisResult& result);
+    void renderAlerts(const AnalysisResult& result);
+    void renderSignalPlot(const AnalysisResult& result);
+    void renderSpectrumPlot(const AnalysisResult& result);
+    void renderAnalysis(const AnalysisResult& result);
 
     // resets/helpers
-    void resetStatisticsPanel();
-    void resetAlertsPanel();
+    void clearStatistics();
+    void clearAlerts();
     void updateBinsInputMode();
     void rebuildFftBinsCombo();
     void updateFromSpinRange();
     void updateFromSpinStep();
+    void updateAnalysisControlState();
 
     void updatePlotVisibility();
     QWidget* createPlotVisibilityToolbar(QWidget* parent);

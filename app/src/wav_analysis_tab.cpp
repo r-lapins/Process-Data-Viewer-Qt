@@ -263,26 +263,23 @@ void WavAnalysisTab::connectControls()
 
 void WavAnalysisTab::recomputeAnalysis()
 {
-    WavAnalysisEngine::AnalysisResult result{};
+    AnalysisResult result{};
 
     if (m_session.wavData.has_value()) {
         result = WavAnalysisEngine::analyze(*m_session.wavData, currentSettings());
     }
 
-    updateStatisticsPanel(result);
-    updateAlertsPanel(result);
-    updateSignalPlot(result);
-    updateSpectrumPlot(result);
-    updateFromSpinStep();
-    updateBinsInputMode();
-    updateFromSpinRange();
+    renderAnalysis(result);
+    updateAnalysisControlState();
 }
 
 void WavAnalysisTab::triggerAutoRecompute()
 {
-    if (m_autoUpdateCheckBox->isChecked()) {
-        recomputeAnalysis();
+    if (m_autoUpdateCheckBox == nullptr || !m_autoUpdateCheckBox->isChecked()) {
+        return;
     }
+
+    recomputeAnalysis();
 }
 
 std::size_t WavAnalysisTab::selectedBins() const
@@ -396,7 +393,7 @@ void WavAnalysisTab::updateFromSpinRange()
     }
 }
 
-void WavAnalysisTab::resetStatisticsPanel()
+void WavAnalysisTab::clearStatistics()
 {
     m_statsFileTypeValueLabel->setText("-");
     m_statsSampleRateValueLabel->setText("-");
@@ -415,9 +412,9 @@ void WavAnalysisTab::resetStatisticsPanel()
     m_statsStddevValueLabel->setText("-");
 }
 
-void WavAnalysisTab::updateStatisticsPanel(const AnalysisResult& result)
+void WavAnalysisTab::renderStatistics(const AnalysisResult& result)
 {
-    resetStatisticsPanel();
+    clearStatistics();
 
     if (!m_session.wavData.has_value()) {
         return;
@@ -449,7 +446,7 @@ void WavAnalysisTab::updateStatisticsPanel(const AnalysisResult& result)
     }
 }
 
-void WavAnalysisTab::resetAlertsPanel()
+void WavAnalysisTab::clearAlerts()
 {
     m_alertsListWidget->clear();
     m_alertsListWidget->addItem("No alerts");
@@ -476,9 +473,9 @@ AnalysisSettings WavAnalysisTab::currentSettings() const
     return s;
 }
 
-void WavAnalysisTab::updateAlertsPanel(const AnalysisResult& result)
+void WavAnalysisTab::renderAlerts(const AnalysisResult& result)
 {
-    resetAlertsPanel();
+    clearAlerts();
 
     if (!m_session.wavData.has_value()) {
         return;
@@ -561,6 +558,13 @@ void WavAnalysisTab::updateFromSpinStep()
     m_fromSpinBox->setSingleStep(step);
 }
 
+void WavAnalysisTab::updateAnalysisControlState()
+{
+    updateBinsInputMode();
+    updateFromSpinRange();
+    updateFromSpinStep();
+}
+
 void WavAnalysisTab::updatePlotVisibility()
 {
     // Show only plots explicitly enabled by the user
@@ -593,7 +597,7 @@ QWidget* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
     return m_spectrumChartWidget;
 }
 
-void WavAnalysisTab::updateSignalPlot(const AnalysisResult& result)
+void WavAnalysisTab::renderSignalPlot(const AnalysisResult& result)
 {
     if (m_signalChartWidget == nullptr) {
         return;
@@ -607,7 +611,7 @@ void WavAnalysisTab::updateSignalPlot(const AnalysisResult& result)
         );
 }
 
-void WavAnalysisTab::updateSpectrumPlot(const AnalysisResult& result)
+void WavAnalysisTab::renderSpectrumPlot(const AnalysisResult& result)
 {
     if (m_spectrumChartWidget == nullptr) {
         return;
@@ -619,6 +623,14 @@ void WavAnalysisTab::updateSpectrumPlot(const AnalysisResult& result)
         result.spectrum.magnitudes,
         QString("Spectrum plot - %1").arg(fileInfo.fileName())
         );
+}
+
+void WavAnalysisTab::renderAnalysis(const AnalysisResult& result)
+{
+    renderStatistics(result);
+    renderAlerts(result);
+    renderSignalPlot(result);
+    renderSpectrumPlot(result);
 }
 
 } // namespace pdv
