@@ -58,6 +58,22 @@ private:
 
     [[nodiscard]] CsvAnalysisEngine::AnalysisSettings currentSettings() const;
 
+    void updateAnomalyThresholdControls();
+    void applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyMethod method);
+    [[nodiscard]] CsvAnalysisEngine::AnomalyMethod currentAnomalyMethod() const;
+    [[nodiscard]] QString anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method) const;
+    [[nodiscard]] QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method) const;
+
+    QLabel* m_anomalyThresholdLabel = nullptr;
+    QLabel* m_statsAnomalyThresholdLabel = nullptr;
+
+    // Remembers the threshold last used for each anomaly method,
+    // so switching methods in the UI restores the previous value.
+    CsvAnalysisEngine::AnomalyMethod m_currentMethodUi = CsvAnalysisEngine::AnomalyMethod::ZScore;
+    double m_lastZScoreThreshold = 3.0;
+    double m_lastIqrThreshold = 1.5;
+    double m_lastMadThreshold = 3.5;
+
     QLabel* m_dataPlaceholderLabel = nullptr;
     QTableView* m_samplesTableView = nullptr;
 

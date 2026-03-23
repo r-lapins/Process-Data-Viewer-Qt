@@ -20,24 +20,40 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QHBoxLayout>
+#include <QSignalBlocker>
 
 namespace pdv {
 namespace {
 
 QString anomalyMethodToString(CsvAnalysisEngine::AnomalyMethod method)
 {
-    using Method = CsvAnalysisEngine::AnomalyMethod;
+    using enum CsvAnalysisEngine::AnomalyMethod;
 
     switch (method) {
-    case Method::ZScore:
+    case ZScore:
         return "Z-score";
-    case Method::IQR:
+    case IQR:
         return "IQR";
-    case Method::MAD:
+    case MAD:
         return "MAD";
     }
 
     return "Unknown";
+}
+
+QString anomalyScoreLabel(CsvAnalysisEngine::AnomalyMethod method)
+{
+    using enum CsvAnalysisEngine::AnomalyMethod;
+    switch (method) {
+    case ZScore:
+        return "z";
+    case IQR:
+        return "iqr";
+    case MAD:
+        return "mad";
+    }
+
+    return "score";
 }
 
 } // namespace
@@ -48,9 +64,14 @@ CsvAnalysisTab::CsvAnalysisTab(const SessionData& session, QWidget* parent)
     m_csvSamplesModel = new CsvSamplesTableModel(this);
 
     createUi();
+
     populateSensorOptions();
     initializeDateControls();
     connectControls();
+
+    m_currentMethodUi = currentAnomalyMethod();
+    applyAnomalyMethodUi(m_currentMethodUi);
+
     recomputeAnalysis();
     updatePlotVisibility();
 }
@@ -163,10 +184,8 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_anomalyMethodComboBox->addItem("MAD");
 
     m_anomalyThresholdSpinBox = new QDoubleSpinBox(controlsGroup);
-    m_anomalyThresholdSpinBox->setRange(0.1, 20.0);
     m_anomalyThresholdSpinBox->setDecimals(2);
-    m_anomalyThresholdSpinBox->setSingleStep(0.1);
-    m_anomalyThresholdSpinBox->setValue(1.5);
+    m_anomalyThresholdLabel = new QLabel("Threshold:", controlsGroup);
 
     m_topNSpinBox = new QSpinBox(controlsGroup);
     m_topNSpinBox->setRange(1, 100);
@@ -192,8 +211,10 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     controlsLayout->addRow("From:", fromWidget);
     controlsLayout->addRow("To filter:", m_useToCheckBox);
     controlsLayout->addRow("To:", toWidget);
+
     controlsLayout->addRow("Anomaly method:", m_anomalyMethodComboBox);
-    controlsLayout->addRow("Threshold:", m_anomalyThresholdSpinBox);
+    controlsLayout->addRow(m_anomalyThresholdLabel, m_anomalyThresholdSpinBox);
+
     controlsLayout->addRow("Top anomalies:", m_topNSpinBox);
     controlsLayout->addRow("", m_recomputeButton);
     controlsLayout->addRow("", m_autoUpdateCheckBox);
@@ -223,6 +244,7 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     m_statsMeanValueLabel = new QLabel("-", statsGroup);
     m_statsStddevValueLabel = new QLabel("-", statsGroup);
     m_statsAnomalyMethodValueLabel = new QLabel("-", statsGroup);
+    m_statsAnomalyThresholdLabel = new QLabel("Threshold:", statsGroup);
     m_statsAnomalyThresholdValueLabel = new QLabel("-", statsGroup);
 
     statsLayout->addRow("File type:", m_statsFileTypeValueLabel);
@@ -237,7 +259,7 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
 
     filterLayout->addRow("Sensor:", m_statsSensorValueLabel);
     filterLayout->addRow("Method:", m_statsAnomalyMethodValueLabel);
-    filterLayout->addRow("Threshold:", m_statsAnomalyThresholdValueLabel);
+    filterLayout->addRow(m_statsAnomalyThresholdLabel, m_statsAnomalyThresholdValueLabel);
     filterLayout->addRow("From:", m_statsFromValueLabel);
     filterLayout->addRow("To:", m_statsToValueLabel);
 
@@ -283,7 +305,7 @@ QWidget* CsvAnalysisTab::createAlertsPanel(QWidget* parent)
     m_alertsListWidget = new QListWidget(alertsGroup);
     alertsLayout->addWidget(m_alertsListWidget);
 
-    alertsGroup->setFixedWidth(375);
+    alertsGroup->setFixedWidth(500);
     alertsGroup->setFixedHeight(425);
     alertsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
@@ -312,7 +334,7 @@ void CsvAnalysisTab::updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResu
 {
     resetStatisticsPanel();
 
-    if (!m_session.dataSet.has_value()) {
+    if (!m_session.dataSet.has_value() || m_session.dataSet->empty()) {
         return;
     }
 
@@ -323,21 +345,10 @@ void CsvAnalysisTab::updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResu
     m_statsTotalValueLabel->setText(QString::number(static_cast<qulonglong>(m_session.dataSet->size())));
     m_statsFilteredValueLabel->setText(QString::number(static_cast<qulonglong>(result.filteredDataSet.size())));
 
-    if (m_session.dataSet->empty()) {
-        m_statsSensorValueLabel->setText("-");
-    }
-    else if (!settings.useSensor) {
-        m_statsSensorValueLabel->setText("All");
-    }
-    else {
-        m_statsSensorValueLabel->setText(QString::fromStdString(settings.sensor));
-    }
+    m_statsSensorValueLabel->setText( settings.useSensor ? QString::fromStdString(settings.sensor) : "All" );
 
     if (settings.useFrom && settings.from.has_value()) {
-        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(
-                              settings.from->time_since_epoch()
-                              ).count();
-
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.from->time_since_epoch()).count();
         m_statsFromValueLabel->setText(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss"));
     }
     else {
@@ -365,7 +376,11 @@ void CsvAnalysisTab::updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResu
     m_statsMeanValueLabel->setText(QString::number(result.meanValue, 'f', 2));
     m_statsStddevValueLabel->setText(QString::number(result.stddevValue, 'f', 2));
     m_statsAnomalyMethodValueLabel->setText(anomalyMethodToString(settings.anomalyMethod));
+    m_statsAnomalyThresholdLabel->setText(anomalyThresholdLabelText(settings.anomalyMethod));
     m_statsAnomalyThresholdValueLabel->setText(QString::number(settings.anomalyThreshold, 'f', 2));
+
+    m_statsAnomalyThresholdLabel->setToolTip(anomalyThresholdTooltip(settings.anomalyMethod));
+    m_statsAnomalyThresholdValueLabel->setToolTip(anomalyThresholdTooltip(settings.anomalyMethod));
 }
 
 void CsvAnalysisTab::resetAlertsPanel()
@@ -395,20 +410,33 @@ void CsvAnalysisTab::updateAlertsPanel(const CsvAnalysisEngine::AnalysisResult& 
         m_alertsListWidget->addItem("No anomalies detected");
     }
     else {
-        for (const auto& a : result.anomalySummary.top) {
+        const QString scoreLabel = anomalyScoreLabel(result.usedSettings.anomalyMethod);
+
+        for (std::size_t anomalyPos = 0; anomalyPos < result.anomalySummary.top.size(); ++anomalyPos) {
+            const auto& a = result.anomalySummary.top[anomalyPos];
+
             const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
             const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts));
             const QString dateText = dt.date().toString("yyyy-MM-dd");
             const QString timeText = dt.time().toString("HH:mm:ss");
 
+            QString indexText = "?";
+
+            if (anomalyPos < result.anomalyIndices.size()) {
+                // 1-based row index, matching the row numbering visible in the table
+                indexText = QString::number(static_cast<qulonglong>(result.anomalyIndices[anomalyPos] + 1));
+            }
+
             m_alertsListWidget->addItem(
-                QString("%1  %2  |  %3  |  value = %4  |  z = %5")
-                    .arg(dateText,
+                QString("#%1  |  %2  %3  |  %4  |  value = %5  |  %6 = %7")
+                    .arg(indexText,
+                         dateText,
                          timeText,
                          QString::fromStdString(a.sensor),
                          QString::number(a.value, 'f', 1),
+                         scoreLabel,
                          QString::number(a.score, 'f', 2))
-            );
+                );
         }
     }
 
@@ -489,29 +517,39 @@ void CsvAnalysisTab::initializeDateControls()
 
 void CsvAnalysisTab::connectControls()
 {
+    connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisTab::recomputeAnalysis);
+
     connect(m_autoUpdateCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
         m_recomputeButton->setEnabled(!checked);
     });
 
+    connect(m_showPlotButton, &QPushButton::toggled, this, [this]() {
+        updatePlotVisibility();
+        if (m_lastResult.has_value()) { updatePlotPanel(*m_lastResult); }
+    });
+
+    connect(m_showSkippedRowsCheckBox, &QCheckBox::toggled, this, [this]() {
+        if (m_lastResult.has_value()) { updateAlertsPanel(*m_lastResult); }
+    });
+
     auto trigger = [this]() {
-        if (m_autoUpdateCheckBox->isChecked()) {
-            recomputeAnalysis();
-        }
+        if (m_autoUpdateCheckBox->isChecked()) { recomputeAnalysis(); }
     };
 
-    connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisTab::recomputeAnalysis);
+    connect(m_anomalyMethodComboBox, &QComboBox::currentIndexChanged, this, [this, trigger]() {
+        updateAnomalyThresholdControls();
+        trigger();
+    });
 
-    connect(m_useSensorCheckBox, &QCheckBox::toggled, this, trigger);
     connect(m_sensorComboBox, &QComboBox::currentIndexChanged, this, trigger);
-    connect(m_useFromCheckBox, &QCheckBox::toggled, this, trigger);
     connect(m_fromDateEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
     connect(m_fromTimeEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
-    connect(m_useToCheckBox, &QCheckBox::toggled, this, trigger);
     connect(m_toDateEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
     connect(m_toTimeEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
-    connect(m_anomalyMethodComboBox, &QComboBox::currentIndexChanged, this, trigger);
-    connect(m_anomalyThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
     connect(m_topNSpinBox, &QSpinBox::valueChanged, this, trigger);
+    connect(m_useSensorCheckBox, &QCheckBox::toggled, this, trigger);
+    connect(m_useFromCheckBox, &QCheckBox::toggled, this, trigger);
+    connect(m_useToCheckBox, &QCheckBox::toggled, this, trigger);
 
     connect(m_useSensorCheckBox, &QCheckBox::toggled, m_sensorComboBox, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromDateEdit, &QWidget::setEnabled);
@@ -519,18 +557,7 @@ void CsvAnalysisTab::connectControls()
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toDateEdit, &QWidget::setEnabled);
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);
 
-    connect(m_showPlotButton, &QPushButton::toggled, this, [this]() {
-        updatePlotVisibility();
-        if (m_lastResult.has_value()) {
-            updatePlotPanel(*m_lastResult);
-        }
-    });
-
-    connect(m_showSkippedRowsCheckBox, &QCheckBox::toggled, this, [this]() {
-        if (m_lastResult.has_value()) {
-            updateAlertsPanel(*m_lastResult);
-        }
-    });
+    connect(m_anomalyThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
 }
 
 void CsvAnalysisTab::displaySessionData(const pdt::DataSet& filtered)
@@ -585,26 +612,125 @@ CsvAnalysisEngine::AnalysisSettings CsvAnalysisTab::currentSettings() const
         s.to = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
     }
 
-    using enum CsvAnalysisEngine::AnomalyMethod;
-    switch (m_anomalyMethodComboBox->currentIndex()) {
-    case 0:
-        s.anomalyMethod = ZScore;
-        break;
-    case 1:
-        s.anomalyMethod = IQR;
-        break;
-    case 2:
-        s.anomalyMethod = MAD;
-        break;
-    default:
-        s.anomalyMethod = ZScore;
-        break;
-    }
-
+    s.anomalyMethod = currentAnomalyMethod();
     s.anomalyThreshold = m_anomalyThresholdSpinBox->value();
     s.topN = static_cast<std::size_t>(m_topNSpinBox->value());
 
     return s;
+}
+
+void CsvAnalysisTab::updateAnomalyThresholdControls()
+{
+    if (m_anomalyThresholdSpinBox == nullptr) { return; }
+
+    // Preserve the threshold value used by the method that is currently active
+    // before switching the UI to the newly selected method.
+    const double currentValue = m_anomalyThresholdSpinBox->value();
+
+    using enum CsvAnalysisEngine::AnomalyMethod;
+    switch (m_currentMethodUi) {
+    case ZScore:
+        m_lastZScoreThreshold = currentValue;
+        break;
+    case IQR:
+        m_lastIqrThreshold = currentValue;
+        break;
+    case MAD:
+        m_lastMadThreshold = currentValue;
+        break;
+    }
+
+    // Apply UI settings and restore the remembered threshold
+    // for the newly selected anomaly method.
+    m_currentMethodUi = currentAnomalyMethod();
+    applyAnomalyMethodUi(m_currentMethodUi);
+}
+
+void CsvAnalysisTab::applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyMethod method)
+{
+    if (m_anomalyThresholdSpinBox == nullptr || m_anomalyThresholdLabel == nullptr) {
+        return;
+    }
+
+    const QSignalBlocker blocker(m_anomalyThresholdSpinBox);
+    // Prevent valueChanged from firing while the control is reconfigured.
+
+    m_anomalyThresholdLabel->setText(anomalyThresholdLabelText(method));    
+    m_anomalyThresholdLabel->setToolTip(anomalyThresholdTooltip(method));
+    m_anomalyThresholdSpinBox->setToolTip(anomalyThresholdTooltip(method));
+
+    m_anomalyThresholdSpinBox->setDecimals(2);
+
+    using enum CsvAnalysisEngine::AnomalyMethod;
+    switch (method) {
+    case ZScore:
+        m_anomalyThresholdSpinBox->setRange(0.1, 10.0);
+        m_anomalyThresholdSpinBox->setSingleStep(0.1);
+        m_anomalyThresholdSpinBox->setValue(m_lastZScoreThreshold);
+        break;
+
+    case IQR:
+        m_anomalyThresholdSpinBox->setRange(0.1, 10.0);
+        m_anomalyThresholdSpinBox->setSingleStep(0.1);
+        m_anomalyThresholdSpinBox->setValue(m_lastIqrThreshold);
+        break;
+
+    case MAD:
+        m_anomalyThresholdSpinBox->setRange(0.1, 20.0);
+        m_anomalyThresholdSpinBox->setSingleStep(0.1);
+        m_anomalyThresholdSpinBox->setValue(m_lastMadThreshold);
+        break;
+    }
+}
+
+CsvAnalysisEngine::AnomalyMethod CsvAnalysisTab::currentAnomalyMethod() const
+{
+    using enum CsvAnalysisEngine::AnomalyMethod;
+
+    if (m_anomalyMethodComboBox == nullptr) {
+        return ZScore;
+    }
+
+    switch (m_anomalyMethodComboBox->currentIndex()) {
+    case 0:
+        return ZScore;
+    case 1:
+        return IQR;
+    case 2:
+        return MAD;
+    default:
+        return ZScore;
+    }
+}
+
+QString CsvAnalysisTab::anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method) const
+{
+    using enum CsvAnalysisEngine::AnomalyMethod;
+    switch (method) {
+    case ZScore:
+        return "Z-threshold:";
+    case IQR:
+        return "IQR multiplier:";
+    case MAD:
+        return "MAD threshold:";
+    }
+
+    return "Threshold:";
+}
+
+QString CsvAnalysisTab::anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method) const
+{
+    using enum CsvAnalysisEngine::AnomalyMethod;
+    switch (method) {
+    case ZScore:
+        return "Absolute z-score threshold used to classify anomalies.";
+    case IQR:
+        return "Multiplier applied to the interquartile range: lower = Q1 - k·IQR, upper = Q3 + k·IQR.";
+    case MAD:
+        return "Absolute score threshold computed from deviation relative to the median and MAD.";
+    }
+
+    return {};
 }
 
 void CsvAnalysisTab::updatePlotVisibility()
@@ -654,6 +780,8 @@ void CsvAnalysisTab::updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& re
     std::ranges::transform(result.anomalyIndices, markerXValues.begin(),
                            [](std::size_t idx) { return static_cast<double>(idx + 1); });
 
+    // Plot anomaly markers at the mean level so they remain visible
+    // without needing a separate series with original sample lookup.
     const QFileInfo fileInfo(m_session.filePath);
     m_csvPlotWidget->updatePlotWithMarkers(
         xValues,

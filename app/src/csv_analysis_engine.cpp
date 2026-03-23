@@ -29,18 +29,21 @@ CsvAnalysisEngine::analyze(const pdt::DataSet& dataSet, const AnalysisSettings& 
         );
 
     const auto& samples = result.filteredDataSet.samples();
+    // Preserve the same ordering as anomalySummary.top so each displayed anomaly
+    // can be paired with its corresponding row index in the filtered table view.
+    // In this dataset model each sample is expected to be unique by (timestamp, sensor, value).
+    for (const auto& anomaly : result.anomalySummary.top) {
+        auto it = std::find_if(samples.begin(), samples.end(),
+                               [&anomaly](const auto& sample) {
+                                   return sample.timestamp == anomaly.timestamp &&
+                                          sample.sensor == anomaly.sensor &&
+                                          sample.value == anomaly.value;
+                               });
 
-    for (std::size_t i = 0; i < samples.size(); ++i) {
-        const auto& sample = samples[i];
-
-        // Match anomaly entries back to original sample indices
-        for (const auto& anomaly : result.anomalySummary.top) {
-            if (sample.timestamp == anomaly.timestamp &&
-                sample.sensor == anomaly.sensor &&
-                sample.value == anomaly.value) {
-                result.anomalyIndices.push_back(i);
-                break;
-            }
+        if (it != samples.end()) {
+            result.anomalyIndices.push_back(
+                static_cast<std::size_t>(std::distance(samples.begin(), it))
+                );
         }
     }
 
