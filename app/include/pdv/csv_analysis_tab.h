@@ -7,7 +7,6 @@
 #include <optional>
 
 class QLabel;
-class QListWidget;
 class QTableView;
 class QDoubleSpinBox;
 class QSpinBox;
@@ -17,11 +16,11 @@ class QComboBox;
 class QDateEdit;
 class QTimeEdit;
 class QGroupBox;
-class QStatusBar;
 
 namespace pdv {
 
 class CsvPlotWidget;
+class CsvResultsPanel;
 
 class CsvAnalysisTab : public AnalysisTab
 {
@@ -31,32 +30,54 @@ public:
     explicit CsvAnalysisTab(const SessionData& session, QWidget* parent = nullptr);
 
 private:
+    struct DataWidgets {
+        QLabel* placeholderLabel = nullptr;
+        QTableView* tableView = nullptr;
+    };
+
+    struct FilterWidgets {
+        QCheckBox* useSensorCheckBox = nullptr;
+        QComboBox* sensorComboBox = nullptr;
+        QCheckBox* useFromCheckBox = nullptr;
+        QDateEdit* fromDateEdit = nullptr;
+        QTimeEdit* fromTimeEdit = nullptr;
+        QCheckBox* useToCheckBox = nullptr;
+        QDateEdit* toDateEdit = nullptr;
+        QTimeEdit* toTimeEdit = nullptr;
+    };
+
+    struct AnalysisWidgets {
+        QComboBox* anomalyMethodComboBox = nullptr;
+        QLabel* anomalyThresholdLabel = nullptr;
+        QDoubleSpinBox* anomalyThresholdSpinBox = nullptr;
+        QSpinBox* topNSpinBox = nullptr;
+    };
+
+    struct ActionWidgets {
+        QPushButton* recomputeButton = nullptr;
+        QPushButton* showPlotButton = nullptr;
+        QPushButton* exportJsonButton = nullptr;
+        QCheckBox* autoUpdateCheckBox = nullptr;
+        QCheckBox* showSkippedRowsCheckBox = nullptr;
+        QCheckBox* exportPerSensorCheckBox = nullptr;
+    };
+
     void createUi();
     QWidget* createDataPanel(QWidget* parent);
     QWidget* createControlsPanel(QWidget* parent);
-    QWidget* createStatisticsPanel(QWidget* parent);
-    QWidget* createAlertsPanel(QWidget* parent);
     QWidget* createActionsPanel(QWidget* parent);
     QGroupBox* createPlotPanel(QWidget* parent);
 
     void connectControls();
-
     void displaySessionData(const pdt::DataSet& filtered);
     void recomputeAnalysis();
     void exportJsonReport();
-
-    void resetStatisticsPanel();
-    void updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResult& result);
-
-    void resetAlertsPanel();
-    void updateAlertsPanel(const CsvAnalysisEngine::AnalysisResult& result);
 
     void populateSensorOptions();
     void initializeDateControls();
 
     void updatePlotVisibility();
     void updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& result);
-
     void updateDataView(const CsvAnalysisEngine::AnalysisResult& result);
 
     [[nodiscard]] CsvAnalysisEngine::AnalysisSettings currentSettings() const;
@@ -64,11 +85,6 @@ private:
     void updateAnomalyThresholdControls();
     void applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyMethod method);
     [[nodiscard]] CsvAnalysisEngine::AnomalyMethod currentAnomalyMethod() const;
-    [[nodiscard]] QString anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method) const;
-    [[nodiscard]] QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method) const;
-
-    QLabel* m_anomalyThresholdLabel = nullptr;
-    QLabel* m_statsAnomalyThresholdLabel = nullptr;
 
     // Remembers the threshold last used for each anomaly method,
     // so switching methods in the UI restores the previous value.
@@ -77,50 +93,15 @@ private:
     double m_lastIqrThreshold = 1.5;
     double m_lastMadThreshold = 3.5;
 
-    QLabel* m_dataPlaceholderLabel = nullptr;
-    QTableView* m_samplesTableView = nullptr;
-
-    QComboBox* m_sensorComboBox = nullptr;
-    QComboBox* m_anomalyMethodComboBox = nullptr;
-    QDateEdit* m_fromDateEdit = nullptr;
-    QTimeEdit* m_fromTimeEdit = nullptr;
-    QDateEdit* m_toDateEdit = nullptr;
-    QTimeEdit* m_toTimeEdit = nullptr;
-    QCheckBox* m_useSensorCheckBox = nullptr;
-    QCheckBox* m_useFromCheckBox = nullptr;
-    QCheckBox* m_useToCheckBox = nullptr;
-    QCheckBox* m_autoUpdateCheckBox = nullptr;
-    QCheckBox* m_showSkippedRowsCheckBox = nullptr;
-    QCheckBox* m_exportPerSensorCheckBox = nullptr;
-    QDoubleSpinBox* m_anomalyThresholdSpinBox = nullptr;
-    QSpinBox* m_topNSpinBox = nullptr;
-    QPushButton* m_recomputeButton = nullptr;
-    QPushButton* m_showPlotButton = nullptr;
-    QPushButton* m_exportJsonButton = nullptr;
+    FilterWidgets m_filters;
+    AnalysisWidgets m_analysis;
+    ActionWidgets m_actions;
+    DataWidgets m_data;
 
     QWidget* m_plotContainer = nullptr;
     CsvPlotWidget* m_csvPlotWidget = nullptr;
-
-    QLabel* m_statsFileTypeValueLabel = nullptr;
-    QLabel* m_statsMinValueLabel = nullptr;
-    QLabel* m_statsMaxValueLabel = nullptr;
-    QLabel* m_statsMeanValueLabel = nullptr;
-    QLabel* m_statsStddevValueLabel = nullptr;
-
-    QLabel* m_statsSkippedValueLabel = nullptr;
-    QLabel* m_statsTotalValueLabel = nullptr;
-    QLabel* m_statsFilteredValueLabel = nullptr;
-    QLabel* m_statsSensorValueLabel = nullptr;
-    QLabel* m_statsFromValueLabel = nullptr;
-    QLabel* m_statsToValueLabel = nullptr;
-
-    QListWidget* m_alertsListWidget = nullptr;
-
+    CsvResultsPanel* m_resultsPanel = nullptr;
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
-
-    QLabel* m_statsDetectedAnomaliesValueLabel = nullptr;
-    QLabel* m_statsAnomalyMethodValueLabel = nullptr;
-    QLabel* m_statsAnomalyThresholdValueLabel = nullptr;
 
     std::optional<CsvAnalysisEngine::AnalysisResult> m_lastResult;
 };
