@@ -26,7 +26,7 @@ QString formatTimestamp(std::chrono::sys_seconds ts)
 
 } // namespace
 
-pdv::CsvSamplesTableModel::CsvSamplesTableModel(QObject *parent)
+CsvSamplesTableModel::CsvSamplesTableModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
 }

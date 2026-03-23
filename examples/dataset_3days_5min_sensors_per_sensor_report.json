@@ -1,0 +1,71 @@
+{
+  "mode": "per_sensor",
+  "import": {
+    "parsed_ok": 3456,
+    "skipped": 4
+  },
+  "filter": {
+  },
+  "data": {
+    "total": 3456,
+    "filtered": 3456
+  },
+  "stats_by_sensor": {
+    "S1": {
+      "count": 864,
+      "min": -35,
+      "max": 85,
+      "mean": 17.3746,
+      "stddev": 3.32373
+    },
+    "S2": {
+      "count": 864,
+      "min": 23.124,
+      "max": 180,
+      "mean": 27.7493,
+      "stddev": 5.5346
+    },
+    "S3": {
+      "count": 864,
+      "min": 4.663,
+      "max": 40,
+      "mean": 5.15004,
+      "stddev": 1.20361
+    },
+    "S4": {
+      "count": 864,
+      "min": 6.719,
+      "max": 7.377,
+      "mean": 7.03198,
+      "stddev": 0.137556
+    }
+  },
+  "anomalies": {
+    "method": "mad",
+    "threshold": 3.3,
+    "top_n": 100,
+    "mode": "per_sensor",
+    "per_sensor": {
+      "S1": {
+        "count": 2,
+        "top": [
+          {"timestamp":"2026-02-19T21:15:00","sensor":"S1","value":85,"score":46.8802},
+          {"timestamp":"2026-02-21T03:40:00","sensor":"S1","value":-35,"score":-36.1935}
+        ]
+      },
+      "S2": {
+        "count": 1,
+        "top": [
+          {"timestamp":"2026-02-20T13:30:00","sensor":"S2","value":180,"score":90.6423}
+        ]
+      },
+      "S3": {
+        "count": 1,
+        "top": [
+          {"timestamp":"2026-02-21T14:45:00","sensor":"S3","value":40,"score":207.074}
+        ]
+      },
+      "S4": { "count": 0, "top": [] }
+    }
+  }
+}

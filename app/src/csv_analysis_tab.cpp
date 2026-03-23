@@ -1,9 +1,14 @@
 #include "pdv/csv_analysis_tab.h"
 #include "pdv/csv_plot_widget.h"
 
+#include <pdt/core/report.h>
+
 #include <set>
+#include <fstream>
 #include <numeric>
 
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QDateTime>
 #include <QFormLayout>
 #include <QFileInfo>
@@ -24,6 +29,23 @@
 
 namespace pdv {
 namespace {
+
+pdt::AnomalyMethod toPdtAnomalyMethod(CsvAnalysisEngine::AnomalyMethod method)
+{
+    using GUI = CsvAnalysisEngine::AnomalyMethod;
+    using PDT = pdt::AnomalyMethod;
+
+    switch (method) {
+    case GUI::ZScore:
+        return PDT::ZScore;
+    case GUI::IQR:
+        return PDT::IQR;
+    case GUI::MAD:
+        return PDT::MAD;
+    }
+
+    return PDT::ZScore;
+}
 
 QString anomalyMethodToString(CsvAnalysisEngine::AnomalyMethod method)
 {
@@ -205,6 +227,11 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_showPlotButton->setChecked(false);
     m_showPlotButton->setStyleSheet(style);
 
+    m_exportJsonButton = new QPushButton("Export JSON", controlsGroup);
+
+    m_exportPerSensorCheckBox = new QCheckBox("Export per sensor", controlsGroup);
+    m_exportPerSensorCheckBox->setChecked(false);
+
     controlsLayout->addRow("Sensor filter:", m_useSensorCheckBox);
     controlsLayout->addRow("Sensor:", m_sensorComboBox);
     controlsLayout->addRow("From filter:", m_useFromCheckBox);
@@ -216,10 +243,12 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     controlsLayout->addRow(m_anomalyThresholdLabel, m_anomalyThresholdSpinBox);
 
     controlsLayout->addRow("Top anomalies:", m_topNSpinBox);
-    controlsLayout->addRow("", m_recomputeButton);
-    controlsLayout->addRow("", m_autoUpdateCheckBox);
+    controlsLayout->addRow("", m_exportJsonButton);
+    controlsLayout->addRow("", m_exportPerSensorCheckBox);
     controlsLayout->addRow("Plot:", m_showPlotButton);
     controlsLayout->addRow("", m_showSkippedRowsCheckBox);
+    controlsLayout->addRow("", m_recomputeButton);
+    controlsLayout->addRow("", m_autoUpdateCheckBox);
 
     controlsGroup->setFixedWidth(320);
 
@@ -371,8 +400,8 @@ void CsvAnalysisTab::updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResu
         QString::number(static_cast<qulonglong>(result.anomalySummary.count))
         );
 
-    m_statsMinValueLabel->setText(QString::number(result.minValue, 'f', 1));
-    m_statsMaxValueLabel->setText(QString::number(result.maxValue, 'f', 1));
+    m_statsMinValueLabel->setText(QString::number(result.minValue, 'f', 2));
+    m_statsMaxValueLabel->setText(QString::number(result.maxValue, 'f', 2));
     m_statsMeanValueLabel->setText(QString::number(result.meanValue, 'f', 2));
     m_statsStddevValueLabel->setText(QString::number(result.stddevValue, 'f', 2));
     m_statsAnomalyMethodValueLabel->setText(anomalyMethodToString(settings.anomalyMethod));
@@ -518,6 +547,7 @@ void CsvAnalysisTab::initializeDateControls()
 void CsvAnalysisTab::connectControls()
 {
     connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisTab::recomputeAnalysis);
+    connect(m_exportJsonButton, &QPushButton::clicked, this, &CsvAnalysisTab::exportJsonReport);
 
     connect(m_autoUpdateCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
         m_recomputeButton->setEnabled(!checked);
@@ -541,6 +571,28 @@ void CsvAnalysisTab::connectControls()
         trigger();
     });
 
+    connect(m_exportPerSensorCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
+        if (!checked) { return; }
+
+        if (m_useSensorCheckBox != nullptr && m_useSensorCheckBox->isChecked()) {
+            m_useSensorCheckBox->setChecked(false);
+
+            QMessageBox::information(this, "Per-sensor export",
+                "Sensor filter has been disabled because per-sensor export is selected."
+                );
+        }
+    });
+
+    connect(m_useSensorCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
+        if (!checked) {
+            return;
+        }
+
+        if (m_exportPerSensorCheckBox != nullptr && m_exportPerSensorCheckBox->isChecked()) {
+            m_exportPerSensorCheckBox->setChecked(false);
+        }
+    });
+
     connect(m_sensorComboBox, &QComboBox::currentIndexChanged, this, trigger);
     connect(m_fromDateEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
     connect(m_fromTimeEdit, &QDateTimeEdit::dateTimeChanged, this, trigger);
@@ -551,13 +603,13 @@ void CsvAnalysisTab::connectControls()
     connect(m_useFromCheckBox, &QCheckBox::toggled, this, trigger);
     connect(m_useToCheckBox, &QCheckBox::toggled, this, trigger);
 
+    connect(m_anomalyThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
+
     connect(m_useSensorCheckBox, &QCheckBox::toggled, m_sensorComboBox, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromDateEdit, &QWidget::setEnabled);
     connect(m_useFromCheckBox, &QCheckBox::toggled, m_fromTimeEdit, &QWidget::setEnabled);
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toDateEdit, &QWidget::setEnabled);
     connect(m_useToCheckBox, &QCheckBox::toggled, m_toTimeEdit, &QWidget::setEnabled);
-
-    connect(m_anomalyThresholdSpinBox, &QDoubleSpinBox::valueChanged, this, trigger);
 }
 
 void CsvAnalysisTab::displaySessionData(const pdt::DataSet& filtered)
@@ -590,6 +642,81 @@ void CsvAnalysisTab::recomputeAnalysis()
     updateStatisticsPanel(result);
     updateAlertsPanel(result);
     updatePlotPanel(result);
+}
+
+void CsvAnalysisTab::exportJsonReport()
+{
+    if (!m_session.dataSet.has_value()) {
+        QMessageBox::warning(this, "Export JSON", "No CSV data available for export.");
+        return;
+    }
+
+    if (!m_lastResult.has_value()) {
+        QMessageBox::warning(this, "Export JSON", "No analysis result available for export.");
+        return;
+    }
+
+    const auto& result = *m_lastResult;
+
+    if (result.invalidTimeRange) {
+        QMessageBox::warning(this, "Export JSON", "Cannot export report for an invalid time range.");
+        return;
+    }
+
+    const auto settings = result.usedSettings;
+    const bool exportPerSensor = (m_exportPerSensorCheckBox != nullptr && m_exportPerSensorCheckBox->isChecked());
+
+    const QFileInfo sourceInfo(m_session.filePath);
+    const QString suffix = exportPerSensor ? "_per_sensor_report.json" : "_report.json";
+    const QString defaultName = sourceInfo.dir().filePath(sourceInfo.completeBaseName() + suffix);
+
+    const QString filePath = QFileDialog::getSaveFileName(this, "Export JSON report", defaultName, "JSON files (*.json);;All files (*)");
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    std::ofstream out(filePath.toStdString());
+    if (!out) {
+        QMessageBox::critical(this, "Export JSON", QString("Failed to open output file:\n%1").arg(filePath));
+        return;
+    }
+
+    pdt::ReportContext ctx{};
+    ctx.parsed_ok = m_session.parsedOk;
+    ctx.skipped = m_session.skipped;
+    ctx.total = m_session.dataSet->size();
+    ctx.filtered = result.filteredDataSet.size();
+
+    if (!exportPerSensor && settings.useSensor && !settings.sensor.empty()) { ctx.sensor = settings.sensor; }
+    if (settings.useFrom && settings.from.has_value()) { ctx.from = settings.from; }
+    if (settings.useTo && settings.to.has_value()) { ctx.to = settings.to; }
+
+    ctx.anomaly_threshold = settings.anomalyThreshold;
+    ctx.anomaly_method = toPdtAnomalyMethod(settings.anomalyMethod);
+    ctx.top_n = settings.topN;
+
+    if (exportPerSensor) {
+        const auto perSensorStats = result.filteredDataSet.stats_by_sensor();
+        const auto perSensorAnomalies = pdt::detect_anomalies_per_sensor(
+            result.filteredDataSet,
+            toPdtAnomalyMethod(settings.anomalyMethod),
+            settings.anomalyThreshold,
+            settings.topN
+            );
+
+        pdt::write_json_report(out, ctx, perSensorStats, perSensorAnomalies);
+    } else {
+        const auto stats = result.filteredDataSet.stats();
+        pdt::write_json_report(out, ctx, stats, result.anomalySummary);
+    }
+
+    if (!out) {
+        QMessageBox::critical(this, "Export JSON", QString("Failed while writing JSON report:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export JSON", QString("JSON report exported to:\n%1").arg(filePath));
 }
 
 CsvAnalysisEngine::AnalysisSettings CsvAnalysisTab::currentSettings() const

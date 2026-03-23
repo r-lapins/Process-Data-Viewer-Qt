@@ -51,6 +51,7 @@ LoadResult FileLoaderService::loadCsv(const QString &filePath) const
         session.dataSet = pdt::DataSet(std::move(importResult.samples));
 
         session.skipped = importResult.skipped;
+        session.parsedOk = importResult.parsed_ok;
         session.skippedRows = std::move(importResult.skipped_rows);
 
         return LoadResult{

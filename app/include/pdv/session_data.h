@@ -26,6 +26,7 @@ struct SessionData
     std::optional<pdt::WavData> wavData;
 
     std::size_t skipped{0};
+    std::size_t parsedOk{0};
     std::vector<pdt::SkippedRow> skippedRows;
 };
 

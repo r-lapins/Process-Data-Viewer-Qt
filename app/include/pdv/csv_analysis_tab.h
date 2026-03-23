@@ -17,6 +17,7 @@ class QComboBox;
 class QDateEdit;
 class QTimeEdit;
 class QGroupBox;
+class QStatusBar;
 
 namespace pdv {
 
@@ -41,6 +42,7 @@ private:
 
     void displaySessionData(const pdt::DataSet& filtered);
     void recomputeAnalysis();
+    void exportJsonReport();
 
     void resetStatisticsPanel();
     void updateStatisticsPanel(const CsvAnalysisEngine::AnalysisResult& result);
@@ -88,10 +90,12 @@ private:
     QCheckBox* m_useToCheckBox = nullptr;
     QCheckBox* m_autoUpdateCheckBox = nullptr;
     QCheckBox* m_showSkippedRowsCheckBox = nullptr;
+    QCheckBox* m_exportPerSensorCheckBox = nullptr;
     QDoubleSpinBox* m_anomalyThresholdSpinBox = nullptr;
     QSpinBox* m_topNSpinBox = nullptr;
     QPushButton* m_recomputeButton = nullptr;
     QPushButton* m_showPlotButton = nullptr;
+    QPushButton* m_exportJsonButton = nullptr;
 
     QWidget* m_plotContainer = nullptr;
     CsvPlotWidget* m_csvPlotWidget = nullptr;
