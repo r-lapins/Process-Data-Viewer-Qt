@@ -36,6 +36,7 @@ private:
     QWidget* createControlsPanel(QWidget* parent);
     QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createAlertsPanel(QWidget* parent);
+    QWidget* createActionsPanel(QWidget* parent);
     QGroupBox* createPlotPanel(QWidget* parent);
 
     void connectControls();
@@ -116,7 +117,6 @@ private:
     QListWidget* m_alertsListWidget = nullptr;
 
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
-
 
     QLabel* m_statsDetectedAnomaliesValueLabel = nullptr;
     QLabel* m_statsAnomalyMethodValueLabel = nullptr;

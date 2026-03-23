@@ -113,12 +113,29 @@ void CsvAnalysisTab::createUi()
     auto* dataPanel = createDataPanel(topWidget);
     auto* controlsPanel = createControlsPanel(topWidget);
     auto* statsPanel = createStatisticsPanel(topWidget);
+    auto* actionsPanel = createActionsPanel(topWidget);
     auto* alertsPanel = createAlertsPanel(topWidget);
 
-    topLayout->addWidget(controlsPanel, 0, Qt::AlignTop);
-    topLayout->addWidget(statsPanel, 0, Qt::AlignTop);
+    auto* leftColumnWidget = new QWidget(topWidget);
+    auto* leftColumnLayout = new QVBoxLayout(leftColumnWidget);
+    leftColumnLayout->setContentsMargins(0, 0, 0, 0);
+    leftColumnLayout->setSpacing(10);
+
+    auto* leftColumnTopWidget = new QWidget(leftColumnWidget);
+    auto* leftColumnTopLayout = new QHBoxLayout(leftColumnTopWidget);
+    leftColumnTopLayout->setContentsMargins(0, 0, 0, 0);
+    leftColumnTopLayout->setSpacing(10);
+
+    leftColumnTopLayout->addWidget(controlsPanel, 0, Qt::AlignTop);
+    leftColumnTopLayout->addWidget(statsPanel, 0, Qt::AlignTop);
+
+    leftColumnLayout->addWidget(leftColumnTopWidget, 0, Qt::AlignTop);
+    leftColumnLayout->addWidget(actionsPanel, 0, Qt::AlignTop | Qt::AlignHCenter);
+    leftColumnLayout->addStretch();
+
+    topLayout->addWidget(leftColumnWidget, 0, Qt::AlignTop);
     topLayout->addWidget(dataPanel, 1);
-    topLayout->addWidget(alertsPanel, 0, Qt::AlignTop);
+    topLayout->addWidget(alertsPanel, 1);
 
     // ===== BOTTOM
     m_plotContainer = createPlotPanel(this);
@@ -213,25 +230,6 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     m_topNSpinBox->setRange(1, 100);
     m_topNSpinBox->setValue(20);
 
-    m_autoUpdateCheckBox = new QCheckBox("Auto update", controlsGroup);
-    m_autoUpdateCheckBox->setChecked(true);
-
-    m_recomputeButton = new QPushButton("Recompute", controlsGroup);
-    m_recomputeButton->setEnabled(false);
-
-    m_showSkippedRowsCheckBox = new QCheckBox("Show skipped?", controlsGroup);
-    m_showSkippedRowsCheckBox->setChecked(false);
-
-    m_showPlotButton = new QPushButton("Plot", controlsGroup);
-    m_showPlotButton->setCheckable(true);
-    m_showPlotButton->setChecked(false);
-    m_showPlotButton->setStyleSheet(style);
-
-    m_exportJsonButton = new QPushButton("Export JSON", controlsGroup);
-
-    m_exportPerSensorCheckBox = new QCheckBox("Export per sensor", controlsGroup);
-    m_exportPerSensorCheckBox->setChecked(false);
-
     controlsLayout->addRow("Sensor filter:", m_useSensorCheckBox);
     controlsLayout->addRow("Sensor:", m_sensorComboBox);
     controlsLayout->addRow("From filter:", m_useFromCheckBox);
@@ -243,14 +241,9 @@ QWidget* CsvAnalysisTab::createControlsPanel(QWidget* parent)
     controlsLayout->addRow(m_anomalyThresholdLabel, m_anomalyThresholdSpinBox);
 
     controlsLayout->addRow("Top anomalies:", m_topNSpinBox);
-    controlsLayout->addRow("", m_exportJsonButton);
-    controlsLayout->addRow("", m_exportPerSensorCheckBox);
-    controlsLayout->addRow("Plot:", m_showPlotButton);
-    controlsLayout->addRow("", m_showSkippedRowsCheckBox);
-    controlsLayout->addRow("", m_recomputeButton);
-    controlsLayout->addRow("", m_autoUpdateCheckBox);
 
     controlsGroup->setFixedWidth(320);
+    controlsGroup->setFixedHeight(350);
 
     return controlsGroup;
 }
@@ -284,7 +277,7 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
 
     auto* filterGroup = new QGroupBox(statsGroup);
     auto* filterLayout = new QFormLayout(filterGroup);
-    filterLayout->setContentsMargins(0, 0, 0, 0);
+    filterLayout->setContentsMargins(5, 5, 5, 5);
 
     filterLayout->addRow("Sensor:", m_statsSensorValueLabel);
     filterLayout->addRow("Method:", m_statsAnomalyMethodValueLabel);
@@ -296,15 +289,15 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
 
     auto* signalGroup = new QGroupBox(statsGroup);
     auto* signalLayout = new QHBoxLayout(signalGroup);
-    signalLayout->setContentsMargins(0, 0, 0, 0);
+    signalLayout->setContentsMargins(5, 5, 5, 5);
 
     auto* signalLeftWidget = new QWidget(signalGroup);
     auto* signalLeftLayout = new QFormLayout(signalLeftWidget);
-    signalLeftLayout->setContentsMargins(0, 0, 0, 0);
+    signalLeftLayout->setContentsMargins(5, 5, 5, 5);
 
     auto* signalRightWidget = new QWidget(signalGroup);
     auto* signalRightLayout = new QFormLayout(signalRightWidget);
-    signalRightLayout->setContentsMargins(0, 0, 0, 0);
+    signalRightLayout->setContentsMargins(5, 5, 5, 5);
 
     signalLeftLayout->addRow("Min:", m_statsMinValueLabel);
     signalLeftLayout->addRow("Max:", m_statsMaxValueLabel);
@@ -321,6 +314,7 @@ QWidget* CsvAnalysisTab::createStatisticsPanel(QWidget* parent)
     statsLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
 
     statsGroup->setFixedWidth(280);
+    statsGroup->setFixedHeight(350);
     statsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     return statsGroup;
@@ -335,10 +329,46 @@ QWidget* CsvAnalysisTab::createAlertsPanel(QWidget* parent)
     alertsLayout->addWidget(m_alertsListWidget);
 
     alertsGroup->setFixedWidth(500);
-    alertsGroup->setFixedHeight(425);
-    alertsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     return alertsGroup;
+}
+
+QWidget *CsvAnalysisTab::createActionsPanel(QWidget *parent)
+{
+    auto* actionsGroup = new QGroupBox("Actions", parent);
+    auto* actionsLayout = new QGridLayout(actionsGroup);
+
+    m_recomputeButton = new QPushButton("Recompute", actionsGroup);
+    m_recomputeButton->setEnabled(false);
+
+    m_exportJsonButton = new QPushButton("Export JSON", actionsGroup);
+
+    m_showPlotButton = new QPushButton("Plot", actionsGroup);
+    m_showPlotButton->setCheckable(true);
+    m_showPlotButton->setChecked(false);
+    m_showPlotButton->setStyleSheet(style);
+
+    m_exportPerSensorCheckBox = new QCheckBox("Per-sensor export", actionsGroup);
+    m_exportPerSensorCheckBox->setChecked(false);
+
+    m_showSkippedRowsCheckBox = new QCheckBox("Show skipped rows", actionsGroup);
+    m_showSkippedRowsCheckBox->setChecked(false);
+
+    m_autoUpdateCheckBox = new QCheckBox("Auto update", actionsGroup);
+    m_autoUpdateCheckBox->setChecked(true);
+
+    actionsLayout->addWidget(m_recomputeButton, 0, 0);
+    actionsLayout->addWidget(m_showPlotButton, 0, 1);
+    actionsLayout->addWidget(m_exportJsonButton, 0, 2);
+
+    actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 0);
+    actionsLayout->addWidget(m_showSkippedRowsCheckBox, 1, 1);
+    actionsLayout->addWidget(m_exportPerSensorCheckBox, 1, 2);
+
+    actionsGroup->setFixedWidth(600);
+    actionsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+    return actionsGroup;
 }
 
 void CsvAnalysisTab::resetStatisticsPanel()
