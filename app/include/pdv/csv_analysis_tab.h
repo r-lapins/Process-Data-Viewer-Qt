@@ -13,8 +13,8 @@ class QWidget;
 
 namespace pdv {
 
-class CsvPlotWidget;
-class CsvResultsPanel;
+class CsvAnalysisPlotWidget;
+class CsvAnalysisResultsPanel;
 class CsvAnalysisController;
 
 class CsvAnalysisTab : public AnalysisTab
@@ -39,13 +39,14 @@ private:
     void exportJsonReport();
 
     void updatePlotVisibility();
-    void updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& result);
-    void updateDataView(const CsvAnalysisEngine::AnalysisResult& result);
+    void renderPlot(const CsvAnalysisEngine::AnalysisResult& result);
+    void renderData(const CsvAnalysisEngine::AnalysisResult& result);
+    void renderResults(const CsvAnalysisEngine::AnalysisResult& result);
 
     DataWidgets m_data;
     QWidget* m_plotContainer = nullptr;
-    CsvPlotWidget* m_csvPlotWidget = nullptr;
-    CsvResultsPanel* m_resultsPanel = nullptr;
+    CsvAnalysisPlotWidget* m_csvAnalysisPlotWidget = nullptr;
+    CsvAnalysisResultsPanel* m_resultsPanel = nullptr;
     CsvAnalysisControlsWidget* m_controlsWidget = nullptr;
     CsvAnalysisController* m_controller = nullptr;
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;

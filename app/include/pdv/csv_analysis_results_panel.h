@@ -10,12 +10,12 @@ class QListWidget;
 
 namespace pdv {
 
-class CsvResultsPanel : public QWidget
+class CsvAnalysisResultsPanel : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit CsvResultsPanel(QWidget* parent = nullptr);
+    explicit CsvAnalysisResultsPanel(QWidget* parent = nullptr);
 
     void clear();
     void setResults(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows);

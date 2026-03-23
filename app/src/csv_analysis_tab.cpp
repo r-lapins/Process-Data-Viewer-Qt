@@ -1,6 +1,6 @@
 #include "pdv/csv_analysis_tab.h"
-#include "pdv/csv_plot_widget.h"
-#include "pdv/csv_results_panel.h"
+#include "pdv/csv_analysis_plot_widget.h"
+#include "pdv/csv_analysis_results_panel.h"
 
 #include <pdt/core/report.h>
 
@@ -72,8 +72,8 @@ void CsvAnalysisTab::createUi()
     dataPanel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     dataPanel->setMinimumWidth(400);
 
-    m_resultsPanel = new CsvResultsPanel(topWidget);
-    m_resultsPanel->setFixedWidth(700);
+    m_resultsPanel = new CsvAnalysisResultsPanel(topWidget);
+    m_resultsPanel->setFixedWidth(750);
 
     auto* leftColumnWidget = new QWidget(topWidget);
     auto* leftColumnLayout = new QVBoxLayout(leftColumnWidget);
@@ -126,8 +126,8 @@ QGroupBox* CsvAnalysisTab::createPlotPanel(QWidget* parent)
     auto* plotGroup = new QGroupBox(parent);
     auto* plotLayout = new QVBoxLayout(plotGroup);
 
-    m_csvPlotWidget = new CsvPlotWidget(plotGroup);
-    plotLayout->addWidget(m_csvPlotWidget);
+    m_csvAnalysisPlotWidget = new CsvAnalysisPlotWidget(plotGroup);
+    plotLayout->addWidget(m_csvAnalysisPlotWidget);
 
     plotGroup->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
@@ -143,7 +143,7 @@ void CsvAnalysisTab::connectControls()
             this, [this](bool) {
                 updatePlotVisibility();
 
-                if (m_controller != nullptr && m_controller->hasResult()) { updatePlotPanel(m_controller->result()); }
+                if (m_controller != nullptr && m_controller->hasResult()) { renderPlot(m_controller->result()); }
             });
 
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showSkippedRowsChanged,
@@ -155,12 +155,9 @@ void CsvAnalysisTab::connectControls()
 
     connect(m_controller, &CsvAnalysisController::resultChanged,
             this, [this](const CsvAnalysisEngine::AnalysisResult& result) {
-                updateDataView(result);
-                updatePlotPanel(result);
-
-                if (m_resultsPanel != nullptr && m_controlsWidget != nullptr) {
-                    m_resultsPanel->setResults(m_session, result, m_controlsWidget->showSkippedRowsEnabled());
-                }
+                renderData(result);
+                renderPlot(result);
+                renderResults(result);
             });
 }
 
@@ -261,9 +258,9 @@ void CsvAnalysisTab::updatePlotVisibility()
     emit preferredSizeChanged();
 }
 
-void CsvAnalysisTab::updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& result)
+void CsvAnalysisTab::renderPlot(const CsvAnalysisEngine::AnalysisResult& result)
 {
-    if (m_csvPlotWidget == nullptr) {
+    if (m_csvAnalysisPlotWidget == nullptr) {
         return;
     }
 
@@ -272,13 +269,13 @@ void CsvAnalysisTab::updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& re
     }
 
     if (result.invalidTimeRange || result.filteredDataSet.empty()) {
-        m_csvPlotWidget->resetPlot();
+        m_csvAnalysisPlotWidget->resetPlot();
         return;
     }
 
     const auto samples = result.filteredDataSet.samples();
     if (samples.empty()) {
-        m_csvPlotWidget->resetPlot();
+        m_csvAnalysisPlotWidget->resetPlot();
         return;
     }
 
@@ -299,7 +296,7 @@ void CsvAnalysisTab::updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& re
     // Plot anomaly markers at the mean level so they remain visible
     // without needing a separate series with original sample lookup.
     const QFileInfo fileInfo(m_session.filePath);
-    m_csvPlotWidget->updatePlotWithMarkers(
+    m_csvAnalysisPlotWidget->updatePlotWithMarkers(
         xValues,
         yValues,
         markerXValues,
@@ -308,7 +305,7 @@ void CsvAnalysisTab::updatePlotPanel(const CsvAnalysisEngine::AnalysisResult& re
         );
 }
 
-void CsvAnalysisTab::updateDataView(const CsvAnalysisEngine::AnalysisResult& result)
+void CsvAnalysisTab::renderData(const CsvAnalysisEngine::AnalysisResult& result)
 {
     if (m_csvSamplesModel == nullptr ||
         m_data.placeholderLabel == nullptr ||
@@ -340,6 +337,15 @@ void CsvAnalysisTab::updateDataView(const CsvAnalysisEngine::AnalysisResult& res
 
     m_data.tableView->setColumnWidth(0, m_data.tableView->columnWidth(0) + 20);
     m_data.tableView->setColumnWidth(1, m_data.tableView->columnWidth(1) + 20);
+}
+
+void CsvAnalysisTab::renderResults(const CsvAnalysisEngine::AnalysisResult& result)
+{
+    if (m_resultsPanel == nullptr || m_controlsWidget == nullptr) {
+        return;
+    }
+
+    m_resultsPanel->setResults(m_session, result, m_controlsWidget->showSkippedRowsEnabled());
 }
 
 } // namespace pdv

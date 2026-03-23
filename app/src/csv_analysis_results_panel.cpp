@@ -1,4 +1,4 @@
-#include "pdv/csv_results_panel.h"
+#include "pdv/csv_analysis_results_panel.h"
 
 #include <QDateTime>
 #include <QFormLayout>
@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QVBoxLayout>
+#include <QTimeZone>
 
 namespace pdv {
 namespace {
@@ -55,12 +56,9 @@ QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method)
     using enum CsvAnalysisEngine::AnomalyMethod;
 
     switch (method) {
-    case ZScore:
-        return "Absolute z-score threshold used to classify anomalies.";
-    case IQR:
-        return "Multiplier applied to the interquartile range: lower = Q1 - k·IQR, upper = Q3 + k·IQR.";
-    case MAD:
-        return "Absolute score threshold computed from deviation relative to the median and MAD.";
+    case ZScore:    return "Absolute z-score threshold used to classify anomalies.";
+    case IQR:       return "Multiplier applied to the interquartile range: lower = Q1 - k·IQR, upper = Q3 + k·IQR.";
+    case MAD:       return "Absolute score threshold computed from deviation relative to the median and MAD.";
     }
 
     return {};
@@ -68,7 +66,7 @@ QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method)
 
 } // namespace
 
-CsvResultsPanel::CsvResultsPanel(QWidget* parent)
+CsvAnalysisResultsPanel::CsvAnalysisResultsPanel(QWidget* parent)
     : QWidget(parent)
 {
     auto* rootLayout = new QHBoxLayout(this);
@@ -86,19 +84,19 @@ CsvResultsPanel::CsvResultsPanel(QWidget* parent)
     clear();
 }
 
-void CsvResultsPanel::clear()
+void CsvAnalysisResultsPanel::clear()
 {
     resetStatisticsPanel();
     resetAlertsPanel();
 }
 
-void CsvResultsPanel::setResults(const SessionData &session, const CsvAnalysisEngine::AnalysisResult &result, bool showSkippedRows)
+void CsvAnalysisResultsPanel::setResults(const SessionData &session, const CsvAnalysisEngine::AnalysisResult &result, bool showSkippedRows)
 {
     updateStatisticsPanel(session, result);
     updateAlertsPanel(session, result, showSkippedRows);
 }
 
-QWidget* CsvResultsPanel::createStatisticsPanel(QWidget* parent)
+QWidget* CsvAnalysisResultsPanel::createStatisticsPanel(QWidget* parent)
 {
     auto* statsGroup = new QGroupBox("Statistics", parent);
     auto* statsLayout = new QFormLayout(statsGroup);
@@ -164,12 +162,12 @@ QWidget* CsvResultsPanel::createStatisticsPanel(QWidget* parent)
     statsLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
 
     statsGroup->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
-    statsGroup->setMinimumWidth(250);
+    statsGroup->setMinimumWidth(270);
 
     return statsGroup;
 }
 
-QWidget* CsvResultsPanel::createAlertsPanel(QWidget* parent)
+QWidget* CsvAnalysisResultsPanel::createAlertsPanel(QWidget* parent)
 {
     auto* alertsGroup = new QGroupBox("Alerts", parent);
     auto* alertsLayout = new QVBoxLayout(alertsGroup);
@@ -182,7 +180,7 @@ QWidget* CsvResultsPanel::createAlertsPanel(QWidget* parent)
     return alertsGroup;
 }
 
-void CsvResultsPanel::resetStatisticsPanel()
+void CsvAnalysisResultsPanel::resetStatisticsPanel()
 {
     m_statsTotalValueLabel->setText("-");
     m_statsFileTypeValueLabel->setText("-");
@@ -200,7 +198,7 @@ void CsvResultsPanel::resetStatisticsPanel()
     m_statsDetectedAnomaliesValueLabel->setText("-");
 }
 
-void CsvResultsPanel::updateStatisticsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result)
+void CsvAnalysisResultsPanel::updateStatisticsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result)
 {
     resetStatisticsPanel();
 
@@ -219,16 +217,14 @@ void CsvResultsPanel::updateStatisticsPanel(const SessionData& session, const Cs
 
     if (settings.useFrom && settings.from.has_value()) {
         const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.from->time_since_epoch()).count();
-        m_statsFromValueLabel->setText(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Qt::UTC).toString("yyyy-MM-dd HH:mm:ss"));
+        m_statsFromValueLabel->setText(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), QTimeZone::UTC).toString("yyyy-MM-dd HH:mm:ss"));
     }
     else {
         m_statsFromValueLabel->setText("-");
     }
 
     if (settings.useTo && settings.to.has_value()) {
-        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(
-                              settings.to->time_since_epoch()
-                              ).count();
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.to->time_since_epoch()).count();
 
         m_statsToValueLabel->setText(
             QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss")
@@ -253,13 +249,13 @@ void CsvResultsPanel::updateStatisticsPanel(const SessionData& session, const Cs
     m_statsAnomalyThresholdValueLabel->setToolTip(anomalyThresholdTooltip(settings.anomalyMethod));
 }
 
-void CsvResultsPanel::resetAlertsPanel()
+void CsvAnalysisResultsPanel::resetAlertsPanel()
 {
     m_alertsListWidget->clear();
     m_alertsListWidget->addItem("No alerts");
 }
 
-void CsvResultsPanel::updateAlertsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows)
+void CsvAnalysisResultsPanel::updateAlertsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows)
 {
     resetAlertsPanel();
 
@@ -286,7 +282,7 @@ void CsvResultsPanel::updateAlertsPanel(const SessionData& session, const CsvAna
             const auto& a = result.anomalySummary.top[anomalyPos];
 
             const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
-            const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts), Qt::UTC);
+            const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts), QTimeZone::UTC);
             const QString dateText = dt.date().toString("yyyy-MM-dd");
             const QString timeText = dt.time().toString("HH:mm:ss");
 

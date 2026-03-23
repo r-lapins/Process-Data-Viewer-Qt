@@ -12,12 +12,12 @@ class QString;
 
 namespace pdv {
 
-class CsvPlotWidget : public QChartView
+class CsvAnalysisPlotWidget : public QChartView
 {
     Q_OBJECT
 
 public:
-    explicit CsvPlotWidget(QWidget* parent = nullptr);
+    explicit CsvAnalysisPlotWidget(QWidget* parent = nullptr);
 
     void resetPlot();
     void updatePlot(std::span<const double> yValues, const QString& title);

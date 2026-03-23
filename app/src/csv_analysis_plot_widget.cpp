@@ -1,4 +1,4 @@
-#include "pdv/csv_plot_widget.h"
+#include "pdv/csv_analysis_plot_widget.h"
 
 #include <QFont>
 #include <QPointF>
@@ -15,7 +15,7 @@
 
 namespace pdv {
 
-CsvPlotWidget::CsvPlotWidget(QWidget* parent)
+CsvAnalysisPlotWidget::CsvAnalysisPlotWidget(QWidget* parent)
     : QChartView(parent)
 {
     auto* chart = new QChart();
@@ -59,7 +59,7 @@ CsvPlotWidget::CsvPlotWidget(QWidget* parent)
     resetPlot();
 }
 
-void CsvPlotWidget::resetPlot()
+void CsvAnalysisPlotWidget::resetPlot()
 {
     m_series->clear();
     m_anomalySeries->clear();
@@ -68,7 +68,7 @@ void CsvPlotWidget::resetPlot()
     m_axisY->setRange(0, 1);
 }
 
-void CsvPlotWidget::updatePlot(std::span<const double> yValues, const QString& title)
+void CsvAnalysisPlotWidget::updatePlot(std::span<const double> yValues, const QString& title)
 {
     if (yValues.empty()) {
         resetPlot();
@@ -82,7 +82,7 @@ void CsvPlotWidget::updatePlot(std::span<const double> yValues, const QString& t
     updatePlot(xValues, yValues, title);
 }
 
-void CsvPlotWidget::updatePlot(
+void CsvAnalysisPlotWidget::updatePlot(
     std::span<const double> xValues,
     std::span<const double> yValues,
     const QString& title)
@@ -140,7 +140,7 @@ void CsvPlotWidget::updatePlot(
     }
 }
 
-void CsvPlotWidget::updatePlotWithMarkers(
+void CsvAnalysisPlotWidget::updatePlotWithMarkers(
     std::span<const double> xValues,
     std::span<const double> yValues,
     std::span<const double> markerXValues,
