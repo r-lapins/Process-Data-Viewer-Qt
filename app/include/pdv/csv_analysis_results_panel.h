@@ -24,11 +24,11 @@ private:
     QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createAlertsPanel(QWidget* parent);
 
-    void resetStatisticsPanel();
-    void updateStatisticsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result);
+    void clearStatistics();
+    void renderStatistics(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result);
 
-    void resetAlertsPanel();
-    void updateAlertsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows);
+    void clearAlerts();
+    void renderAlerts(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows);
 
     QLabel* m_statsFileTypeValueLabel = nullptr;
     QLabel* m_statsMinValueLabel = nullptr;

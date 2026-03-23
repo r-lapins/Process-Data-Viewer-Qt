@@ -86,14 +86,14 @@ CsvAnalysisResultsPanel::CsvAnalysisResultsPanel(QWidget* parent)
 
 void CsvAnalysisResultsPanel::clear()
 {
-    resetStatisticsPanel();
-    resetAlertsPanel();
+    clearStatistics();
+    clearAlerts();
 }
 
 void CsvAnalysisResultsPanel::setResults(const SessionData &session, const CsvAnalysisEngine::AnalysisResult &result, bool showSkippedRows)
 {
-    updateStatisticsPanel(session, result);
-    updateAlertsPanel(session, result, showSkippedRows);
+    renderStatistics(session, result);
+    renderAlerts(session, result, showSkippedRows);
 }
 
 QWidget* CsvAnalysisResultsPanel::createStatisticsPanel(QWidget* parent)
@@ -180,7 +180,7 @@ QWidget* CsvAnalysisResultsPanel::createAlertsPanel(QWidget* parent)
     return alertsGroup;
 }
 
-void CsvAnalysisResultsPanel::resetStatisticsPanel()
+void CsvAnalysisResultsPanel::clearStatistics()
 {
     m_statsTotalValueLabel->setText("-");
     m_statsFileTypeValueLabel->setText("-");
@@ -198,9 +198,9 @@ void CsvAnalysisResultsPanel::resetStatisticsPanel()
     m_statsDetectedAnomaliesValueLabel->setText("-");
 }
 
-void CsvAnalysisResultsPanel::updateStatisticsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result)
+void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result)
 {
-    resetStatisticsPanel();
+    clearStatistics();
 
     if (!session.dataSet.has_value() || session.dataSet->empty()) {
         return;
@@ -249,15 +249,15 @@ void CsvAnalysisResultsPanel::updateStatisticsPanel(const SessionData& session, 
     m_statsAnomalyThresholdValueLabel->setToolTip(anomalyThresholdTooltip(settings.anomalyMethod));
 }
 
-void CsvAnalysisResultsPanel::resetAlertsPanel()
+void CsvAnalysisResultsPanel::clearAlerts()
 {
     m_alertsListWidget->clear();
     m_alertsListWidget->addItem("No alerts");
 }
 
-void CsvAnalysisResultsPanel::updateAlertsPanel(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows)
+void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const CsvAnalysisEngine::AnalysisResult& result, bool showSkippedRows)
 {
-    resetAlertsPanel();
+    clearAlerts();
 
     if (!session.dataSet.has_value()) {
         return;
