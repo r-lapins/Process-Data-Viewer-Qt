@@ -4,8 +4,7 @@
 #include "pdv/csv_samples_table_model.h"
 #include "pdv/csv_analysis_engine.h"
 #include "pdv/csv_analysis_controls_widget.h"
-
-#include <optional>
+#include "pdv/csv_analysis_controller.h"
 
 class QLabel;
 class QTableView;
@@ -16,6 +15,7 @@ namespace pdv {
 
 class CsvPlotWidget;
 class CsvResultsPanel;
+class CsvAnalysisController;
 
 class CsvAnalysisTab : public AnalysisTab
 {
@@ -47,9 +47,8 @@ private:
     CsvPlotWidget* m_csvPlotWidget = nullptr;
     CsvResultsPanel* m_resultsPanel = nullptr;
     CsvAnalysisControlsWidget* m_controlsWidget = nullptr;
+    CsvAnalysisController* m_controller = nullptr;
     CsvSamplesTableModel* m_csvSamplesModel = nullptr;
-
-    std::optional<CsvAnalysisEngine::AnalysisResult> m_lastResult;
 };
 
 } // namespace pdv

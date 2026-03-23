@@ -4,6 +4,7 @@ set(SOURCES
     src/analysis_tab.cpp
     src/file_loader_service.cpp
 
+    src/csv_analysis_controller.cpp
     src/csv_analysis_controls_widget.cpp
     src/csv_analysis_engine.cpp
     src/csv_analysis_tab.cpp
@@ -22,6 +23,7 @@ set(HEADERS
     include/pdv/analysis_tab.h
     include/pdv/file_loader_service.h
 
+    include/pdv/csv_analysis_controller.h
     include/pdv/csv_analysis_controls_widget.h
     include/pdv/csv_analysis_engine.h
     include/pdv/csv_analysis_tab.h

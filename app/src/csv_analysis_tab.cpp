@@ -44,6 +44,7 @@ CsvAnalysisTab::CsvAnalysisTab(const SessionData& session, QWidget* parent)
     : AnalysisTab(session, parent)
 {
     m_csvSamplesModel = new CsvSamplesTableModel(this);
+    m_controller = new CsvAnalysisController(m_session, this);
 
     createUi();
     connectControls();
@@ -141,36 +142,36 @@ void CsvAnalysisTab::connectControls()
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showPlotChanged,
             this, [this](bool) {
                 updatePlotVisibility();
-                if (m_lastResult.has_value()) { updatePlotPanel(*m_lastResult); }
+
+                if (m_controller != nullptr && m_controller->hasResult()) { updatePlotPanel(m_controller->result()); }
             });
 
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showSkippedRowsChanged,
             this, [this](bool) {
-                if (m_lastResult.has_value() && m_resultsPanel != nullptr) {
-                    m_resultsPanel->setResults(
-                        m_session,
-                        *m_lastResult,
-                        m_controlsWidget->showSkippedRowsEnabled()
-                        );
+                if (m_controller != nullptr && m_controller->hasResult() && m_resultsPanel != nullptr) {
+                    m_resultsPanel->setResults(m_session, m_controller->result(), m_controlsWidget->showSkippedRowsEnabled());
+                }
+            });
+
+    connect(m_controller, &CsvAnalysisController::resultChanged,
+            this, [this](const CsvAnalysisEngine::AnalysisResult& result) {
+                updateDataView(result);
+                updatePlotPanel(result);
+
+                if (m_resultsPanel != nullptr && m_controlsWidget != nullptr) {
+                    m_resultsPanel->setResults(m_session, result, m_controlsWidget->showSkippedRowsEnabled());
                 }
             });
 }
 
 void CsvAnalysisTab::recomputeAnalysis()
 {
-    CsvAnalysisEngine::AnalysisResult result{};
-
-    if (m_session.dataSet.has_value()) {
-        result = CsvAnalysisEngine::analyze(*m_session.dataSet, m_controlsWidget->settings());
+    if (m_controller == nullptr || m_controlsWidget == nullptr) {
+        return;
     }
 
-    m_lastResult = result;
-
-    updateDataView(result);
-    updatePlotPanel(result);
-
-    const bool showSkippedRows = (m_controlsWidget != nullptr && m_controlsWidget->showSkippedRowsEnabled());
-    if (m_resultsPanel != nullptr) { m_resultsPanel->setResults(m_session, result, showSkippedRows); }
+    m_controller->setSettings(m_controlsWidget->settings());
+    m_controller->recompute();
 }
 
 void CsvAnalysisTab::exportJsonReport()
@@ -180,12 +181,12 @@ void CsvAnalysisTab::exportJsonReport()
         return;
     }
 
-    if (!m_lastResult.has_value()) {
+    if (m_controller == nullptr || !m_controller->hasResult()) {
         QMessageBox::warning(this, "Export JSON", "No analysis result available for export.");
         return;
     }
 
-    const auto& result = *m_lastResult;
+    const auto& result = m_controller->result();
 
     if (result.invalidTimeRange) {
         QMessageBox::warning(this, "Export JSON", "Cannot export report for an invalid time range.");
@@ -317,7 +318,7 @@ void CsvAnalysisTab::updateDataView(const CsvAnalysisEngine::AnalysisResult& res
 
     if (result.invalidTimeRange) {
         m_csvSamplesModel->clear();
-        m_data.placeholderLabel->setText("Invalid time range");
+        m_data.placeholderLabel->setText("Invalid time range: From is later than To");
         m_data.placeholderLabel->show();
         m_data.tableView->hide();
         return;
