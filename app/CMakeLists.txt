@@ -12,8 +12,9 @@ set(SOURCES
     src/csv_analysis_results_panel.cpp
     src/csv_samples_table_model.cpp
 
-    src/wav_analysis_tab.cpp
+    src/wav_analysis_controls_widget.cpp
     src/wav_analysis_engine.cpp
+    src/wav_analysis_tab.cpp
     src/wav_plot_widget.cpp
 )
 
@@ -31,8 +32,9 @@ set(HEADERS
     include/pdv/csv_analysis_results_panel.h
     include/pdv/csv_samples_table_model.h
 
-    include/pdv/wav_analysis_tab.h
+    include/pdv/wav_analysis_controls_widget.h
     include/pdv/wav_analysis_engine.h
+    include/pdv/wav_analysis_tab.h
     include/pdv/wav_plot_widget.h
 )
 

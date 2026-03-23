@@ -2,15 +2,10 @@
 
 #include "pdv/analysis_tab.h"
 #include "pdv/wav_analysis_engine.h"
+#include "pdv/wav_analysis_controls_widget.h"
 
 class QLabel;
 class QListWidget;
-class QPushButton;
-class QComboBox;
-class QSpinBox;
-class QDoubleSpinBox;
-class QCheckBox;
-class QStackedWidget;
 
 namespace pdv {
 
@@ -31,7 +26,6 @@ public:
 private:
     // ui creation
     void createUi();
-    QWidget* createControlsPanel(QWidget* parent);
     QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createAlertsPanel(QWidget* parent);
     QWidget* createSignalPlot(QWidget* parent);
@@ -40,13 +34,6 @@ private:
     // orchestration
     void connectControls();
     void recomputeAnalysis();
-    void triggerAutoRecompute();
-
-    // analysis
-    [[nodiscard]] std::size_t selectedBins() const;
-    [[nodiscard]] SpectrumAlgorithm selectedAlgorithm() const noexcept;
-    [[nodiscard]] AnalysisSettings currentSettings() const;
-    [[nodiscard]] bool useWindow() const noexcept;
 
     // ui updates
     void renderStatistics(const AnalysisResult& result);
@@ -58,14 +45,8 @@ private:
     // resets/helpers
     void clearStatistics();
     void clearAlerts();
-    void updateBinsInputMode();
-    void rebuildFftBinsCombo();
-    void updateFromSpinRange();
-    void updateFromSpinStep();
-    void updateAnalysisControlState();
 
     void updatePlotVisibility();
-    QWidget* createPlotVisibilityToolbar(QWidget* parent);
 
     QString toString(SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;
@@ -87,29 +68,15 @@ private:
     QLabel* m_statsMeanValueLabel = nullptr;
     QLabel* m_statsStddevValueLabel = nullptr;
 
-    QSpinBox* m_fromSpinBox = nullptr;
-    QSpinBox* m_binsSpinBox = nullptr;
-    QSpinBox* m_topPeaksSpinBox = nullptr;
-
-    QComboBox* m_windowComboBox = nullptr;
-    QComboBox* m_algorithmComboBox = nullptr;
-    QComboBox* m_peakModeComboBox = nullptr;
-    QComboBox* m_binsComboBox = nullptr;
-
-    QCheckBox* m_autoUpdateCheckBox = nullptr;
-    QPushButton* m_recomputeButton = nullptr;
     QListWidget* m_alertsListWidget = nullptr;
-    QDoubleSpinBox* m_thresholdSpinBox = nullptr;
-    QStackedWidget* m_binsInputStack = nullptr;
 
     SignalChartWidget* m_signalChartWidget = nullptr;
     SpectrumChartWidget* m_spectrumChartWidget = nullptr;
 
-    QPushButton* m_showSignalButton = nullptr;
-    QPushButton* m_showSpectrumButton = nullptr;
-
     QWidget* m_signalPlotContainer = nullptr;
     QWidget* m_spectrumPlotContainer = nullptr;
+
+    WavAnalysisControlsWidget* m_controlsWidget = nullptr;
 };
 
 } // namespace pdv
