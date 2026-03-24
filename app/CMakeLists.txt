@@ -16,7 +16,7 @@ set(SOURCES
     src/wav_analysis_controls_widget.cpp
     src/wav_analysis_engine.cpp
     src/wav_analysis_tab.cpp
-    src/wav_plot_widget.cpp
+    src/wav_analysis_plot_widget.cpp
 )
 
 set(HEADERS
@@ -37,7 +37,7 @@ set(HEADERS
     include/pdv/wav_analysis_controls_widget.h
     include/pdv/wav_analysis_engine.h
     include/pdv/wav_analysis_tab.h
-    include/pdv/wav_plot_widget.h
+    include/pdv/wav_analysis_plot_widget.h
 )
 
 qt_add_executable(process_data_viewer
