@@ -10,6 +10,8 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QVBoxLayout>
+#include <QMessageBox>
+#include <QFileDialog>
 
 namespace pdv {
 
@@ -176,6 +178,9 @@ void WavAnalysisTab::connectControls()
                 m_controlsWidget->setBusy(busy);
                 emit analysisStatusChanged(busy, busy ? "Analyzing WAV data..." : "Ready");
             });
+
+    connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSignalPlotRequested, this, &WavAnalysisTab::exportSignalPlotPng);
+    connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSpectrumPlotRequested, this, &WavAnalysisTab::exportSpectrumPlotPng);
 }
 
 void WavAnalysisTab::recomputeAnalysis()
@@ -340,6 +345,52 @@ void WavAnalysisTab::updatePlotVisibility()
 
     updateGeometry();
     emit preferredSizeChanged();
+}
+
+void WavAnalysisTab::exportSignalPlotPng()
+{
+    if (m_signalChartWidget == nullptr) {
+        QMessageBox::warning(this, "Export signal PNG", "Signal plot is not available.");
+        return;
+    }
+
+    const QFileInfo sourceInfo(m_session.filePath);
+    const QString defaultName = sourceInfo.dir().filePath(sourceInfo.completeBaseName() + "_signal.png");
+
+    const QString filePath = QFileDialog::getSaveFileName(this, "Export signal PNG", defaultName, "PNG files (*.png)");
+
+    if (filePath.isEmpty()) { return; }
+
+    const QPixmap pixmap = m_signalChartWidget->grab();
+    if (!pixmap.save(filePath, "PNG")) {
+        QMessageBox::critical(this, "Export signal PNG", QString("Failed to save PNG file:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export signal PNG", QString("Signal plot exported to:\n%1").arg(filePath));
+}
+
+void WavAnalysisTab::exportSpectrumPlotPng()
+{
+    if (m_spectrumChartWidget == nullptr) {
+        QMessageBox::warning(this, "Export spectrum PNG", "Spectrum plot is not available.");
+        return;
+    }
+
+    const QFileInfo sourceInfo(m_session.filePath);
+    const QString defaultName = sourceInfo.dir().filePath(sourceInfo.completeBaseName() + "_spectrum.png");
+
+    const QString filePath = QFileDialog::getSaveFileName(this, "Export spectrum PNG", defaultName, "PNG files (*.png)");
+
+    if (filePath.isEmpty()) { return; }
+
+    const QPixmap pixmap = m_spectrumChartWidget->grab();
+    if (!pixmap.save(filePath, "PNG")) {
+        QMessageBox::critical(this, "Export spectrum PNG", QString("Failed to save PNG file:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export spectrum PNG", QString("Spectrum plot exported to:\n%1").arg(filePath));
 }
 
 QWidget* WavAnalysisTab::createSignalPlot(QWidget* parent)

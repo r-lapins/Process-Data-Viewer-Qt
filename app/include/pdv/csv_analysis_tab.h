@@ -37,6 +37,7 @@ private:
     void connectControls();
     void recomputeAnalysis();
     void exportJsonReport();
+    void exportPlotPng();
 
     void updatePlotVisibility();
     void renderPlot(const CsvAnalysisEngine::AnalysisResult& result);

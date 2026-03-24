@@ -37,6 +37,7 @@ signals:
     void exportJsonRequested();
     void showPlotChanged(bool checked);
     void showSkippedRowsChanged(bool checked);
+    void exportPlotRequested();
 
 private:
     void createUi();
@@ -71,6 +72,7 @@ private:
     QPushButton* m_recomputeButton = nullptr;
     QPushButton* m_showPlotButton = nullptr;
     QPushButton* m_exportJsonButton = nullptr;
+    QPushButton* m_exportPlotButton = nullptr;
 
     QCheckBox* m_autoUpdateCheckBox = nullptr;
     QCheckBox* m_showSkippedRowsCheckBox = nullptr;

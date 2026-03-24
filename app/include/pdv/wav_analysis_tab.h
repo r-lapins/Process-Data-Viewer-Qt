@@ -48,6 +48,8 @@ private:
     void clearAlerts();
 
     void updatePlotVisibility();
+    void exportSignalPlotPng();
+    void exportSpectrumPlotPng();
 
     QString toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;

@@ -163,6 +163,7 @@ void CsvAnalysisControlsWidget::createUi()
 
     m_recomputeButton = new QPushButton("Recompute", actionsGroup);
     m_exportJsonButton = new QPushButton("Export JSON", actionsGroup);
+    m_exportPlotButton = new QPushButton("Export PNG", actionsGroup);
 
     m_showPlotButton = new QPushButton("Plot", actionsGroup);
     m_showPlotButton->setCheckable(true);
@@ -180,7 +181,8 @@ void CsvAnalysisControlsWidget::createUi()
 
     actionsLayout->addWidget(m_recomputeButton, 0, 0);
     actionsLayout->addWidget(m_showPlotButton, 0, 1);
-    actionsLayout->addWidget(m_exportJsonButton, 0, 2);
+    actionsLayout->addWidget(m_exportJsonButton, 2, 2);
+    actionsLayout->addWidget(m_exportPlotButton, 2, 1);
 
     actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 0);
     actionsLayout->addWidget(m_showSkippedRowsCheckBox, 1, 1);
@@ -194,6 +196,7 @@ void CsvAnalysisControlsWidget::createUi()
 
 void CsvAnalysisControlsWidget::connectControls()
 {
+    connect(m_exportPlotButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportPlotRequested);
     connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::analysisRequested);
     connect(m_exportJsonButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportJsonRequested);
     connect(m_showPlotButton, &QPushButton::toggled, this, &CsvAnalysisControlsWidget::showPlotChanged);

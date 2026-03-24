@@ -33,6 +33,8 @@ signals:
     void analysisRequested();
     void signalPlotToggled(bool checked);
     void spectrumPlotToggled(bool checked);
+    void exportSignalPlotRequested();
+    void exportSpectrumPlotRequested();
 
 private:
     void createUi(const SessionData& session);
@@ -64,6 +66,8 @@ private:
 
     QPushButton* m_showSignalButton = nullptr;
     QPushButton* m_showSpectrumButton = nullptr;
+    QPushButton* m_exportSignalPlotButton = nullptr;
+    QPushButton* m_exportSpectrumPlotButton = nullptr;
 
     const SessionData* m_session = nullptr;
 };

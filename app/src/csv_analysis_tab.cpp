@@ -7,19 +7,20 @@
 #include <fstream>
 #include <numeric>
 
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QDateTime>
-#include <QFormLayout>
-#include <QFileInfo>
 #include <QGroupBox>
-#include <QHeaderView>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QDateTime>
+#include <QFileInfo>
 #include <QLabel>
 #include <QListWidget>
 #include <QTableView>
+#include <QHeaderView>
+#include <QFormLayout>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
+#include <QPixmap>
 
 namespace pdv {
 namespace {
@@ -139,6 +140,7 @@ void CsvAnalysisTab::connectControls()
 {
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::analysisRequested, this, &CsvAnalysisTab::recomputeAnalysis);
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::exportJsonRequested, this, &CsvAnalysisTab::exportJsonReport);
+    connect(m_controlsWidget, &CsvAnalysisControlsWidget::exportPlotRequested, this, &CsvAnalysisTab::exportPlotPng);
 
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showPlotChanged,
             this, [this]() {
@@ -206,9 +208,7 @@ void CsvAnalysisTab::exportJsonReport()
 
     const QString filePath = QFileDialog::getSaveFileName(this, "Export JSON report", defaultName, "JSON files (*.json);;All files (*)");
 
-    if (filePath.isEmpty()) {
-        return;
-    }
+    if (filePath.isEmpty()) { return; }
 
     std::ofstream out(filePath.toStdString());
     if (!out) {
@@ -253,13 +253,34 @@ void CsvAnalysisTab::exportJsonReport()
     QMessageBox::information(this, "Export JSON", QString("JSON report exported to:\n%1").arg(filePath));
 }
 
+void CsvAnalysisTab::exportPlotPng()
+{
+    if (m_csvAnalysisPlotWidget == nullptr) {
+        QMessageBox::warning(this, "Export plot PNG", "Plot widget is not available.");
+        return;
+    }
+
+    const QFileInfo sourceInfo(m_session.filePath);
+    const QString defaultName = sourceInfo.dir().filePath(sourceInfo.completeBaseName() + "_plot.png");
+
+    const QString filePath = QFileDialog::getSaveFileName(this, "Export plot PNG", defaultName, "PNG files (*.png)");
+
+    if (filePath.isEmpty()) { return; }
+
+    const QPixmap pixmap = m_csvAnalysisPlotWidget->grab();
+    if (!pixmap.save(filePath, "PNG")) {
+        QMessageBox::critical(this, "Export plot PNG", QString("Failed to save PNG file:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export plot PNG", QString("Plot exported to:\n%1").arg(filePath));
+}
+
 void CsvAnalysisTab::updatePlotVisibility()
 {
     const bool visible = (m_controlsWidget != nullptr && m_controlsWidget->isPlotEnabled());
 
-    if (m_plotContainer != nullptr) {
-        m_plotContainer->setVisible(visible);
-    }
+    if (m_plotContainer != nullptr) { m_plotContainer->setVisible(visible); }
 
     updateGeometry();
     emit preferredSizeChanged();
@@ -268,10 +289,6 @@ void CsvAnalysisTab::updatePlotVisibility()
 void CsvAnalysisTab::renderPlot(const CsvAnalysisEngine::AnalysisResult& result)
 {
     if (m_csvAnalysisPlotWidget == nullptr) {
-        return;
-    }
-
-    if (m_controlsWidget == nullptr || !m_controlsWidget->isPlotEnabled()) {
         return;
     }
 
