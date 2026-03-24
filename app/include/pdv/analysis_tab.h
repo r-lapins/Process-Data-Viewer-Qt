@@ -21,6 +21,7 @@ public:
 
 signals:
     void preferredSizeChanged();
+    void analysisStatusChanged(bool busy, const QString& message);
 
 protected:
     SessionData m_session;

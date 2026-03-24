@@ -132,10 +132,7 @@ void MainWindow::handleLoadFinished()
     const LoadResult result = m_loadWatcher->result();
 
     if (!result.success) {
-        statusBar()->showMessage(
-            QString("Failed to load file: %1").arg(result.errorMessage),
-            5000
-            );
+        statusBar()->showMessage(QString("Failed to load file: %1").arg(result.errorMessage), 5000);
         return;
     }
 
@@ -146,20 +143,18 @@ void MainWindow::handleLoadFinished()
     }
 
     connect(tab, &AnalysisTab::preferredSizeChanged, this, [this]() {
-        QTimer::singleShot(0, this, [this]() {
-            adjustWindowToCurrentTab();
-        });
+        QTimer::singleShot(0, this, [this]() { adjustWindowToCurrentTab(); });
     });
+
+    connect(tab, &AnalysisTab::analysisStatusChanged,
+            this, [this](bool busy, const QString& message) { statusBar()->showMessage(message); });
 
     const int index = m_tabWidget->addTab(tab, tab->tabTitle());
     m_tabWidget->setCurrentIndex(index);
 
     QTimer::singleShot(0, this, [this]() { adjustWindowToCurrentTab(); });
 
-    statusBar()->showMessage(
-        QString("Loaded file: %1").arg(tab->tabTitle()),
-        3000
-        );
+    statusBar()->showMessage(QString("Loaded file: %1").arg(tab->tabTitle()), 3000);
 
     updateWindowTitle();
 }

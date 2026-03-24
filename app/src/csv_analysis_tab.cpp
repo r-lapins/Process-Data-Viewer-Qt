@@ -158,6 +158,12 @@ void CsvAnalysisTab::connectControls()
                 renderPlot(result);
                 renderResults(result);
             });
+
+    connect(m_controller, &CsvAnalysisController::busyChanged, this,
+            [this](bool busy) {
+                m_controlsWidget->setBusy(busy);
+                emit analysisStatusChanged(busy, busy ? "Analyzing CSV data..." : "Ready");
+    });
 }
 
 void CsvAnalysisTab::recomputeAnalysis()

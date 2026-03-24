@@ -30,6 +30,8 @@ public:
     [[nodiscard]] bool isShowSkippedRowsEnabled() const noexcept;
     [[nodiscard]] bool isExportPerSensorEnabled() const noexcept;
 
+    void setBusy(bool busy);
+
 signals:
     void analysisRequested();
     void exportJsonRequested();

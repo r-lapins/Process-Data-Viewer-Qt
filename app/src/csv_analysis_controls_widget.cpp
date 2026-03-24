@@ -24,6 +24,9 @@
 namespace pdv {
 namespace {
 
+constexpr auto kRecomputeLabel = "Recompute";
+constexpr auto kBusyLabel = "Wait for it.";
+
 const char* kToggleButtonStyle = R"(
     QPushButton {
         padding: 4px 10px;
@@ -32,6 +35,14 @@ const char* kToggleButtonStyle = R"(
         background-color: #2E7D32;
         color: white;
         border: 1px solid #1B5E20;
+    }
+)";
+
+const char* kToggleButtonStyle2 = R"(
+    QPushButton {
+        background-color: #FF9800;
+        color: black;
+        font-weight: bold;
     }
 )";
 
@@ -369,6 +380,24 @@ bool CsvAnalysisControlsWidget::isShowSkippedRowsEnabled() const noexcept
 bool CsvAnalysisControlsWidget::isExportPerSensorEnabled() const noexcept
 {
     return m_exportPerSensorCheckBox->isChecked();
+}
+
+void CsvAnalysisControlsWidget::setBusy(bool busy)
+{
+    if (busy) {
+        m_recomputeButton->setText(kBusyLabel);
+        m_recomputeButton->setEnabled(false);
+
+        m_recomputeButton->setStyleSheet(kToggleButtonStyle2);
+    } else {
+        m_recomputeButton->setText(kRecomputeLabel);
+
+        m_recomputeButton->setStyleSheet("");
+
+        // ważne: respect auto-update
+        const bool autoUpdate = m_autoUpdateCheckBox->isChecked();
+        m_recomputeButton->setEnabled(!autoUpdate);
+    }
 }
 
 void CsvAnalysisControlsWidget::updateAnomalyThresholdControls()

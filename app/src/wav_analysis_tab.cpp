@@ -168,6 +168,12 @@ void WavAnalysisTab::connectControls()
     connect(m_controlsWidget, &WavAnalysisControlsWidget::spectrumPlotToggled, this, [this]() { updatePlotVisibility(); });
 
     connect(m_controller, &WavAnalysisController::resultChanged, this, [this](const WavAnalysisEngine::AnalysisResult& result) { renderAnalysis(result); });
+
+    connect(m_controller, &WavAnalysisController::busyChanged,
+            this, [this](bool busy) {
+                m_controlsWidget->setBusy(busy);
+                emit analysisStatusChanged(busy, busy ? "Analyzing WAV data..." : "Ready");
+            });
 }
 
 void WavAnalysisTab::recomputeAnalysis()

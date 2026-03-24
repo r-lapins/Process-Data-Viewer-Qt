@@ -27,6 +27,8 @@ public:
     [[nodiscard]] bool isSignalPlotEnabled() const noexcept;
     [[nodiscard]] bool isSpectrumPlotEnabled() const noexcept;
 
+    void setBusy(bool busy);
+
 signals:
     void analysisRequested();
     void signalPlotToggled(bool checked);
