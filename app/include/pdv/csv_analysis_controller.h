@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QFutureWatcher>
 
 #include "pdv/csv_analysis_engine.h"
 #include "pdv/session_data.h"
@@ -21,18 +22,27 @@ public:
 
     void recompute();
 
+    [[nodiscard]] bool isBusy() const noexcept;
     [[nodiscard]] bool hasResult() const noexcept;
     [[nodiscard]] const CsvAnalysisEngine::AnalysisResult& result() const;
 
     [[nodiscard]] const SessionData& session() const noexcept;
 
 signals:
-    void resultChanged(const CsvAnalysisEngine::AnalysisResult& result);
+    void resultChanged(const pdv::CsvAnalysisEngine::AnalysisResult& result);
+    void busyChanged(bool busy);
 
 private:
+    void startRecompute();
+    void handleRecomputeFinished();
+
     const SessionData& m_session;
     CsvAnalysisEngine::AnalysisSettings m_settings{};
     std::optional<CsvAnalysisEngine::AnalysisResult> m_result;
+
+    QFutureWatcher<CsvAnalysisEngine::AnalysisResult>* m_recomputeWatcher = nullptr;
+    bool m_isBusy = false;
+    bool m_hasPendingRecompute = false;
 };
 
 } // namespace pdv

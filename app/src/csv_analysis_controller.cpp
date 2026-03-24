@@ -1,5 +1,7 @@
 #include "pdv/csv_analysis_controller.h"
 
+#include <QtConcurrent/QtConcurrentRun>
+
 #include <cassert>
 
 namespace pdv {
@@ -8,6 +10,54 @@ CsvAnalysisController::CsvAnalysisController(const SessionData& session, QObject
     : QObject(parent)
     , m_session(session)
 {
+    m_recomputeWatcher = new QFutureWatcher<CsvAnalysisEngine::AnalysisResult>(this);
+
+    connect(m_recomputeWatcher, &QFutureWatcher<CsvAnalysisEngine::AnalysisResult>::finished,
+            this, &CsvAnalysisController::handleRecomputeFinished);
+}
+
+void CsvAnalysisController::recompute()
+{
+    if (m_isBusy) {
+        m_hasPendingRecompute = true;
+        return;
+    }
+
+    startRecompute();
+}
+
+void CsvAnalysisController::startRecompute()
+{
+    if (!m_session.dataSet.has_value()) {
+        CsvAnalysisEngine::AnalysisResult emptyResult{};
+        emptyResult.usedSettings = m_settings;
+        m_result = std::move(emptyResult);
+        emit resultChanged(*m_result);
+        return;
+    }
+
+    m_isBusy = true;
+    emit busyChanged(true);
+
+    const auto dataSet = *m_session.dataSet;
+    const auto settings = m_settings;
+
+    m_recomputeWatcher->setFuture(QtConcurrent::run([dataSet, settings]() { return CsvAnalysisEngine::analyze(dataSet, settings); } ));
+}
+
+void CsvAnalysisController::handleRecomputeFinished()
+{
+    m_result = m_recomputeWatcher->result();
+
+    m_isBusy = false;
+    emit busyChanged(false);
+
+    emit resultChanged(*m_result);
+
+    if (m_hasPendingRecompute) {
+        m_hasPendingRecompute = false;
+        startRecompute();
+    }
 }
 
 void CsvAnalysisController::setSettings(const CsvAnalysisEngine::AnalysisSettings& settings)
@@ -21,17 +71,9 @@ CsvAnalysisController::settings() const noexcept
     return m_settings;
 }
 
-void CsvAnalysisController::recompute()
+bool CsvAnalysisController::isBusy() const noexcept
 {
-    CsvAnalysisEngine::AnalysisResult newResult{};
-    newResult.usedSettings = m_settings;
-
-    if (m_session.dataSet.has_value()) {
-        newResult = CsvAnalysisEngine::analyze(*m_session.dataSet, m_settings);
-    }
-
-    m_result = std::move(newResult);
-    emit resultChanged(*m_result);
+    return m_isBusy;
 }
 
 bool CsvAnalysisController::hasResult() const noexcept
