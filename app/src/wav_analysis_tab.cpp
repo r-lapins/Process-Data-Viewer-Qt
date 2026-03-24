@@ -1,5 +1,7 @@
 #include "pdv/wav_analysis_tab.h"
 #include "pdv/wav_plot_widget.h"
+#include "pdv/wav_analysis_controller.h"
+#include "pdv/wav_analysis_controls_widget.h"
 
 #include <QFileInfo>
 #include <QFormLayout>
@@ -14,6 +16,8 @@ namespace pdv {
 WavAnalysisTab::WavAnalysisTab(const SessionData& session, QWidget* parent)
     : AnalysisTab(session, parent)
 {
+    m_controller = new WavAnalysisController(m_session, this);
+
     createUi();
     connectControls();
     updatePlotVisibility();
@@ -148,17 +152,18 @@ void WavAnalysisTab::connectControls()
 
     connect(m_controlsWidget, &WavAnalysisControlsWidget::signalPlotToggled, this, [this]() { updatePlotVisibility(); });
     connect(m_controlsWidget, &WavAnalysisControlsWidget::spectrumPlotToggled, this, [this]() { updatePlotVisibility(); });
+
+    connect(m_controller, &WavAnalysisController::resultChanged, this, [this](const WavAnalysisEngine::AnalysisResult& result) { renderAnalysis(result); });
 }
 
 void WavAnalysisTab::recomputeAnalysis()
 {
-    AnalysisResult result{};
-
-    if (m_controlsWidget != nullptr && m_session.wavData.has_value()) {
-        result = WavAnalysisEngine::analyze(*m_session.wavData, m_controlsWidget->settings());
+    if (m_controller == nullptr || m_controlsWidget == nullptr) {
+        return;
     }
 
-    renderAnalysis(result);
+    m_controller->setSettings(m_controlsWidget->settings());
+    m_controller->recompute();
 }
 
 void WavAnalysisTab::clearStatistics()
@@ -180,7 +185,7 @@ void WavAnalysisTab::clearStatistics()
     m_statsStddevValueLabel->setText("-");
 }
 
-void WavAnalysisTab::renderAnalysis(const AnalysisResult& result)
+void WavAnalysisTab::renderAnalysis(const WavAnalysisEngine::AnalysisResult& result)
 {
     renderStatistics(result);
     renderAlerts(result);
@@ -188,16 +193,16 @@ void WavAnalysisTab::renderAnalysis(const AnalysisResult& result)
     renderSpectrumPlot(result);
 }
 
-void WavAnalysisTab::renderStatistics(const AnalysisResult& result)
+void WavAnalysisTab::renderStatistics(const WavAnalysisEngine::AnalysisResult& result)
 {
     clearStatistics();
 
-    if (!m_session.wavData.has_value() || m_controlsWidget == nullptr) {
+    if (!m_session.wavData.has_value() || m_controller == nullptr) {
         return;
     }
 
     const auto& wav = *m_session.wavData;
-    const auto settings = m_controlsWidget->settings();
+    const auto& settings = result.usedSettings;
 
     m_statsFileTypeValueLabel->setText("WAV");
     m_statsSampleRateValueLabel->setText(QString::number(wav.sample_rate));
@@ -228,7 +233,7 @@ void WavAnalysisTab::clearAlerts()
     m_alertsListWidget->addItem("No alerts");
 }
 
-void WavAnalysisTab::renderAlerts(const AnalysisResult& result)
+void WavAnalysisTab::renderAlerts(const WavAnalysisEngine::AnalysisResult& result)
 {
     clearAlerts();
 
@@ -265,9 +270,9 @@ void WavAnalysisTab::renderAlerts(const AnalysisResult& result)
     }
 }
 
-QString WavAnalysisTab::toString(SpectrumAlgorithm algorithm) const
+QString WavAnalysisTab::toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const
 {
-    using enum SpectrumAlgorithm;
+    using enum WavAnalysisEngine::SpectrumAlgorithm;
     switch (algorithm) {
     case Dft: return "DFT";
     case Fft: return "FFT";
@@ -320,7 +325,7 @@ QWidget* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
     return m_spectrumChartWidget;
 }
 
-void WavAnalysisTab::renderSignalPlot(const AnalysisResult& result)
+void WavAnalysisTab::renderSignalPlot(const WavAnalysisEngine::AnalysisResult& result)
 {
     if (m_signalChartWidget == nullptr) {
         return;
@@ -334,7 +339,7 @@ void WavAnalysisTab::renderSignalPlot(const AnalysisResult& result)
         );
 }
 
-void WavAnalysisTab::renderSpectrumPlot(const AnalysisResult& result)
+void WavAnalysisTab::renderSpectrumPlot(const WavAnalysisEngine::AnalysisResult& result)
 {
     if (m_spectrumChartWidget == nullptr) {
         return;

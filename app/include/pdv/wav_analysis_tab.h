@@ -2,19 +2,20 @@
 
 #include "pdv/analysis_tab.h"
 #include "pdv/wav_analysis_engine.h"
-#include "pdv/wav_analysis_controls_widget.h"
+
+#include <pdt/signal/window.h>
+#include <pdt/signal/peak_detection.h>
 
 class QLabel;
 class QListWidget;
+class QWidget;
 
 namespace pdv {
 
 class SignalChartWidget;
 class SpectrumChartWidget;
-
-using AnalysisResult = WavAnalysisEngine::AnalysisResult;
-using AnalysisSettings = WavAnalysisEngine::AnalysisSettings;
-using SpectrumAlgorithm = WavAnalysisEngine::SpectrumAlgorithm;
+class WavAnalysisController;
+class WavAnalysisControlsWidget;
 
 class WavAnalysisTab : public AnalysisTab
 {
@@ -36,11 +37,11 @@ private:
     void recomputeAnalysis();
 
     // ui updates
-    void renderStatistics(const AnalysisResult& result);
-    void renderAlerts(const AnalysisResult& result);
-    void renderSignalPlot(const AnalysisResult& result);
-    void renderSpectrumPlot(const AnalysisResult& result);
-    void renderAnalysis(const AnalysisResult& result);
+    void renderStatistics(const WavAnalysisEngine::AnalysisResult& result);
+    void renderAlerts(const WavAnalysisEngine::AnalysisResult& result);
+    void renderSignalPlot(const WavAnalysisEngine::AnalysisResult& result);
+    void renderSpectrumPlot(const WavAnalysisEngine::AnalysisResult& result);
+    void renderAnalysis(const WavAnalysisEngine::AnalysisResult& result);
 
     // resets/helpers
     void clearStatistics();
@@ -48,7 +49,7 @@ private:
 
     void updatePlotVisibility();
 
-    QString toString(SpectrumAlgorithm algorithm) const;
+    QString toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;
     QString toString(pdt::PeakDetectionMode mode) const;
 
@@ -76,6 +77,7 @@ private:
     QWidget* m_signalPlotContainer = nullptr;
     QWidget* m_spectrumPlotContainer = nullptr;
 
+    WavAnalysisController* m_controller = nullptr;
     WavAnalysisControlsWidget* m_controlsWidget = nullptr;
 };
 

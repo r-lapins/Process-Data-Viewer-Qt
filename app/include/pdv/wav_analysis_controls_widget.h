@@ -2,7 +2,6 @@
 
 #include <QWidget>
 
-#include "pdv/session_data.h"
 #include "pdv/wav_analysis_engine.h"
 
 class QCheckBox;
@@ -14,9 +13,7 @@ class QStackedWidget;
 
 namespace pdv {
 
-using AnalysisResult = WavAnalysisEngine::AnalysisResult;
-using AnalysisSettings = WavAnalysisEngine::AnalysisSettings;
-using SpectrumAlgorithm = WavAnalysisEngine::SpectrumAlgorithm;
+struct SessionData;
 
 class WavAnalysisControlsWidget : public QWidget
 {
@@ -25,7 +22,7 @@ class WavAnalysisControlsWidget : public QWidget
 public:
     explicit WavAnalysisControlsWidget(const SessionData& session, QWidget* parent = nullptr);
 
-    [[nodiscard]] AnalysisSettings settings() const;
+    [[nodiscard]] WavAnalysisEngine::AnalysisSettings settings() const;
     [[nodiscard]] bool isAutoUpdateEnabled() const noexcept;
     [[nodiscard]] bool isSignalPlotEnabled() const noexcept;
     [[nodiscard]] bool isSpectrumPlotEnabled() const noexcept;
@@ -40,7 +37,7 @@ private:
     void connectControls();
 
     [[nodiscard]] std::size_t selectedBins() const;
-    [[nodiscard]] SpectrumAlgorithm selectedAlgorithm() const noexcept;
+    [[nodiscard]] WavAnalysisEngine::SpectrumAlgorithm selectedAlgorithm() const noexcept;
     [[nodiscard]] bool useWindow() const noexcept;
 
     void triggerAutoAnalysis();

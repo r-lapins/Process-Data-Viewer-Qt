@@ -13,6 +13,7 @@ WavAnalysisEngine::AnalysisResult
 WavAnalysisEngine::analyze(const pdt::WavData& wav, const AnalysisSettings& settings)
 {
     AnalysisResult result{};
+    result.usedSettings = settings;
 
     if (wav.sample_rate == 0 || wav.samples.empty()) {
         return result;

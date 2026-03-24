@@ -27,11 +27,15 @@ public:
     };
 
     struct AnalysisResult {
+        AnalysisSettings usedSettings;
+
         std::vector<double> rawSegment;
-        std::vector<double> processedSegment;
         pdt::Spectrum spectrum;
+
+        std::vector<double> processedSegment;
         std::vector<pdt::Peak> allPeaks;
         std::vector<pdt::Peak> dominantPeaks;
+
         double minValue{0.0};
         double maxValue{0.0};
         double meanValue{0.0};

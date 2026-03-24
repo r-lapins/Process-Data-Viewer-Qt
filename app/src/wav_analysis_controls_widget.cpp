@@ -1,7 +1,9 @@
 #include "pdv/wav_analysis_controls_widget.h"
+#include "pdv/session_data.h"
 
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -97,8 +99,8 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_windowComboBox->addItem("Hamming", static_cast<int>(pdt::WindowType::Hamming));
     m_windowComboBox->addItem("None", -1);
 
-    m_algorithmComboBox->addItem("FFT", static_cast<int>(SpectrumAlgorithm::Fft));
-    m_algorithmComboBox->addItem("DFT", static_cast<int>(SpectrumAlgorithm::Dft));
+    m_algorithmComboBox->addItem("FFT", static_cast<int>(WavAnalysisEngine::SpectrumAlgorithm::Fft));
+    m_algorithmComboBox->addItem("DFT", static_cast<int>(WavAnalysisEngine::SpectrumAlgorithm::Dft));
 
     m_thresholdSpinBox->setRange(0.0, 1.0);
     m_thresholdSpinBox->setSingleStep(0.05);
@@ -175,10 +177,10 @@ void WavAnalysisControlsWidget::connectControls()
     connect(m_showSpectrumButton, &QPushButton::toggled, this, &WavAnalysisControlsWidget::spectrumPlotToggled);
 }
 
-AnalysisSettings WavAnalysisControlsWidget::settings() const
+WavAnalysisEngine::AnalysisSettings WavAnalysisControlsWidget::settings() const
 {
     // Gather current UI state into analysis settings passed to the engine
-    AnalysisSettings s{};
+    WavAnalysisEngine::AnalysisSettings s{};
 
     s.algorithm = selectedAlgorithm();
     s.useWindow = useWindow();
@@ -213,18 +215,18 @@ bool WavAnalysisControlsWidget::isSpectrumPlotEnabled() const noexcept
 
 std::size_t WavAnalysisControlsWidget::selectedBins() const
 {
-    const auto selected = static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    const auto selected = static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
-    if (selected == SpectrumAlgorithm::Fft) {
+    if (selected == WavAnalysisEngine::SpectrumAlgorithm::Fft) {
         return static_cast<std::size_t>(m_binsComboBox->currentData().toULongLong());
     }
 
     return static_cast<std::size_t>(m_binsSpinBox->value());
 }
 
-SpectrumAlgorithm WavAnalysisControlsWidget::selectedAlgorithm() const noexcept
+WavAnalysisEngine::SpectrumAlgorithm WavAnalysisControlsWidget::selectedAlgorithm() const noexcept
 {
-    return static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    return static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 }
 
 bool WavAnalysisControlsWidget::useWindow() const noexcept
@@ -241,9 +243,9 @@ void WavAnalysisControlsWidget::triggerAutoAnalysis()
 
 void WavAnalysisControlsWidget::updateBinsInputMode()
 {
-    const auto selected = static_cast<SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    const auto selected = static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
-    if (selected == SpectrumAlgorithm::Fft) {
+    if (selected == WavAnalysisEngine::SpectrumAlgorithm::Fft) {
         m_binsInputStack->setCurrentWidget(m_binsComboBox);
     } else {
         m_binsInputStack->setCurrentWidget(m_binsSpinBox);
