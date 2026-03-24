@@ -223,6 +223,10 @@ void MainWindow::updateLayoutGeometry()
 
 void MainWindow::adjustWindowToCurrentTab()
 {
+    if (isMaximized() || isFullScreen()) {
+        return;
+    }
+
     updateLayoutGeometry();
 
     const QSize currentSize = size();
