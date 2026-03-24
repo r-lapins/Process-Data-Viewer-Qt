@@ -45,6 +45,7 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     auto* rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(0, 0, 0, 0);
 
+    // Controls
     auto* controlsGroup = new QGroupBox("Controls", this);
     auto* controlsLayout = new QFormLayout(controlsGroup);
 
@@ -59,26 +60,6 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_thresholdSpinBox = new QDoubleSpinBox(controlsGroup);
     m_peakModeComboBox = new QComboBox(controlsGroup);
     m_topPeaksSpinBox = new QSpinBox(controlsGroup);
-    m_autoUpdateCheckBox = new QCheckBox("Auto update", controlsGroup);
-    m_recomputeButton = new QPushButton("Recompute", controlsGroup);
-
-    m_showSignalButton = new QPushButton("Signal", controlsGroup);
-    m_showSpectrumButton = new QPushButton("Spectrum", controlsGroup);
-
-    m_showSignalButton->setCheckable(true);
-    m_showSignalButton->setChecked(false);
-    m_showSignalButton->setStyleSheet(kToggleButtonStyle);
-
-    m_showSpectrumButton->setCheckable(true);
-    m_showSpectrumButton->setChecked(false);
-    m_showSpectrumButton->setStyleSheet(kToggleButtonStyle);
-
-    auto* plotToggleWidget = new QWidget(controlsGroup);
-    auto* plotToggleLayout = new QHBoxLayout(plotToggleWidget);
-    plotToggleLayout->setContentsMargins(0, 0, 0, 0);
-    plotToggleLayout->setSpacing(6);
-    plotToggleLayout->addWidget(m_showSignalButton);
-    plotToggleLayout->addWidget(m_showSpectrumButton);
 
     int sampleCount = 0;
     if (session.wavData.has_value()) {
@@ -113,8 +94,6 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_topPeaksSpinBox->setRange(1, 100);
     m_topPeaksSpinBox->setValue(20);
 
-    m_autoUpdateCheckBox->setChecked(true);
-
     controlsLayout->addRow("Algorithm:", m_algorithmComboBox);
     controlsLayout->addRow("Window:", m_windowComboBox);
     controlsLayout->addRow("Peak mode:", m_peakModeComboBox);
@@ -122,9 +101,37 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     controlsLayout->addRow("Top peaks:", m_topPeaksSpinBox);
     controlsLayout->addRow("Bins:", m_binsInputStack);
     controlsLayout->addRow("From sample:", m_fromSpinBox);
-    controlsLayout->addRow("", m_recomputeButton);
-    controlsLayout->addRow("", m_autoUpdateCheckBox);
-    controlsLayout->addRow("Plots:", plotToggleWidget);
+
+    // Actions
+    auto* actionsGroup = new QGroupBox(this);
+    auto* actionsLayout = new QGridLayout(actionsGroup);
+
+    m_autoUpdateCheckBox = new QCheckBox("Auto update", actionsGroup);
+    m_recomputeButton = new QPushButton("Recompute", actionsGroup);
+
+    m_autoUpdateCheckBox->setChecked(true);
+
+    m_showSignalButton = new QPushButton("Signal", actionsGroup);
+    m_showSpectrumButton = new QPushButton("Spectrum", actionsGroup);
+
+    m_showSignalButton->setCheckable(true);
+    m_showSignalButton->setChecked(false);
+    m_showSignalButton->setStyleSheet(kToggleButtonStyle);
+
+    m_showSpectrumButton->setCheckable(true);
+    m_showSpectrumButton->setChecked(false);
+    m_showSpectrumButton->setStyleSheet(kToggleButtonStyle);
+
+    auto* plotToggleWidget = new QWidget(actionsGroup);
+    auto* plotToggleLayout = new QHBoxLayout(plotToggleWidget);
+    plotToggleLayout->setContentsMargins(0, 0, 0, 0);
+    plotToggleLayout->setSpacing(6);
+    plotToggleLayout->addWidget(m_showSignalButton);
+    plotToggleLayout->addWidget(m_showSpectrumButton);
+
+    actionsLayout->addWidget(m_autoUpdateCheckBox, 0, 0, Qt::AlignRight);
+    actionsLayout->addWidget(m_recomputeButton, 0, 1);
+    actionsLayout->addWidget(plotToggleWidget, 1, 0, 1, 2);
 
     m_recomputeButton->setEnabled(!m_autoUpdateCheckBox->isChecked());
 
@@ -133,10 +140,8 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     updateFromSpinRange(session);
     updateFromSpinStep();
 
-    controlsGroup->setFixedWidth(300);
-    controlsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-
     rootLayout->addWidget(controlsGroup, 0, Qt::AlignTop);
+    rootLayout->addWidget(actionsGroup, 0, Qt::AlignTop);
     rootLayout->addStretch();
 }
 

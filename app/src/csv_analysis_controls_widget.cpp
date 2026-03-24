@@ -101,7 +101,7 @@ void CsvAnalysisControlsWidget::createUi()
     auto* fromWidget = new QWidget(controlsGroup);
     auto* fromLayout = new QHBoxLayout(fromWidget);
     fromLayout->setContentsMargins(0, 0, 0, 0);
-    // fromLayout->setSpacing(6);
+    fromLayout->setSpacing(6);
     fromLayout->addWidget(m_fromDateEdit);
     fromLayout->addWidget(m_fromTimeEdit);
 
@@ -118,7 +118,7 @@ void CsvAnalysisControlsWidget::createUi()
     auto* toWidget = new QWidget(controlsGroup);
     auto* toLayout = new QHBoxLayout(toWidget);
     toLayout->setContentsMargins(0, 0, 0, 0);
-    // toLayout->setSpacing(6);
+    toLayout->setSpacing(6);
     toLayout->addWidget(m_toDateEdit);
     toLayout->addWidget(m_toTimeEdit);
 
@@ -151,7 +151,6 @@ void CsvAnalysisControlsWidget::createUi()
     auto* actionsLayout = new QGridLayout(actionsGroup);
 
     m_recomputeButton = new QPushButton("Recompute", actionsGroup);
-    // m_recomputeButton->setEnabled(false);
     m_exportJsonButton = new QPushButton("Export JSON", actionsGroup);
 
     m_showPlotButton = new QPushButton("Plot", actionsGroup);
@@ -162,7 +161,7 @@ void CsvAnalysisControlsWidget::createUi()
     m_exportPerSensorCheckBox = new QCheckBox("Per-sensor", actionsGroup);
     m_exportPerSensorCheckBox->setChecked(false);
 
-    m_showSkippedRowsCheckBox = new QCheckBox("Show skipped", actionsGroup);
+    m_showSkippedRowsCheckBox = new QCheckBox("Skipped rows", actionsGroup);
     m_showSkippedRowsCheckBox->setChecked(false);
 
     m_autoUpdateCheckBox = new QCheckBox("Auto update", actionsGroup);

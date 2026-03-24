@@ -59,21 +59,21 @@ void CsvAnalysisTab::createUi()
     rootLayout->setContentsMargins(6, 6, 6, 6);
     rootLayout->setSpacing(10);
 
+    // ===== TOP
     auto* topWidget = new QWidget(this);
     auto* topLayout = new QHBoxLayout(topWidget);
     topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(10);
 
-    auto* dataPanel = createDataPanel(topWidget);
-
     m_controlsWidget = new CsvAnalysisControlsWidget(m_session, topWidget);
     m_controlsWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-    dataPanel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    dataPanel->setMinimumWidth(400);
-
     m_resultsPanel = new CsvAnalysisResultsPanel(topWidget);
     m_resultsPanel->setFixedWidth(750);
+
+    auto* dataPanel = createDataPanel(topWidget);
+    dataPanel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    dataPanel->setMinimumWidth(400);
 
     auto* leftColumnWidget = new QWidget(topWidget);
     auto* leftColumnLayout = new QVBoxLayout(leftColumnWidget);
@@ -91,7 +91,6 @@ void CsvAnalysisTab::createUi()
 
     rootLayout->addWidget(topWidget, 1);
     rootLayout->addWidget(m_plotContainer, 0);
-
     rootLayout->setSizeConstraint(QLayout::SetMinimumSize);
 }
 

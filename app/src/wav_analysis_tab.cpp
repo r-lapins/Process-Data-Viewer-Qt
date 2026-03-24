@@ -36,9 +36,21 @@ void WavAnalysisTab::createUi()
     topLayout->setSpacing(10);
 
     m_controlsWidget = new WavAnalysisControlsWidget(m_session, topWidget);
+    m_controlsWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+
+    auto* resultsWidget = new QWidget(this);
+    auto* resultsLayout = new QHBoxLayout(resultsWidget);
+
+    auto* statsPanel = createStatisticsPanel(resultsWidget);
+    auto* alertsPanel = createAlertsPanel(resultsWidget);
+
+    resultsLayout->addWidget(statsPanel, 0, Qt::AlignTop);
+    resultsLayout->addWidget(alertsPanel, 1);
+
+    resultsWidget->setFixedWidth(600);
+
     topLayout->addWidget(m_controlsWidget, 0, Qt::AlignTop);
-    topLayout->addWidget(createStatisticsPanel(topWidget), 0, Qt::AlignTop);
-    topLayout->addWidget(createAlertsPanel(topWidget), 0, Qt::AlignTop);
+    topLayout->addWidget(resultsWidget, 0, Qt::AlignTop);
     topLayout->addStretch();
 
     topWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -52,6 +64,8 @@ void WavAnalysisTab::createUi()
     m_signalPlotContainer = createSignalPlot(bottomWidget);
     m_spectrumPlotContainer = createSpectrumPlot(bottomWidget);
 
+    m_signalPlotContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_spectrumPlotContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     m_signalPlotContainer->setVisible(false);
     m_spectrumPlotContainer->setVisible(false);
 
@@ -59,7 +73,7 @@ void WavAnalysisTab::createUi()
     bottomLayout->addWidget(m_spectrumPlotContainer);
     bottomLayout->addStretch(0);
 
-    rootLayout->addWidget(topWidget);
+    rootLayout->addWidget(topWidget, 0);
     rootLayout->addWidget(bottomWidget, 1);
     rootLayout->setSizeConstraint(QLayout::SetMinimumSize);
 }
@@ -120,9 +134,11 @@ QWidget* WavAnalysisTab::createStatisticsPanel(QWidget* parent)
 
     statsLayout->addRow(signalGroup);
 
-    statsGroup->setFixedWidth(250);
-    statsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-    statsGroup->setMaximumHeight(statsGroup->sizeHint().height());
+    statsLayout->setLabelAlignment(Qt::AlignLeft);
+    statsLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+    statsGroup->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    statsGroup->setMinimumWidth(250);
 
     return statsGroup;
 }
@@ -135,9 +151,7 @@ QWidget* WavAnalysisTab::createAlertsPanel(QWidget* parent)
     m_alertsListWidget = new QListWidget(alertsGroup);
     alertsLayout->addWidget(m_alertsListWidget);
 
-    alertsGroup->setFixedWidth(350);
-    alertsGroup->setFixedHeight(375);
-    alertsGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    alertsGroup->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     return alertsGroup;
 }
@@ -306,8 +320,15 @@ void WavAnalysisTab::updatePlotVisibility()
     const bool signalVisible = (m_controlsWidget != nullptr && m_controlsWidget->isSignalPlotEnabled());
     const bool spectrumVisible = (m_controlsWidget != nullptr && m_controlsWidget->isSpectrumPlotEnabled());
 
-    if (m_signalPlotContainer != nullptr) { m_signalPlotContainer->setVisible(signalVisible); }
-    if (m_spectrumPlotContainer != nullptr) { m_spectrumPlotContainer->setVisible(spectrumVisible); }
+    if (m_signalPlotContainer != nullptr) {
+        m_signalPlotContainer->setVisible(signalVisible);
+        m_signalPlotContainer->updateGeometry();
+    }
+
+    if (m_spectrumPlotContainer != nullptr) {
+        m_spectrumPlotContainer->setVisible(spectrumVisible);
+        m_spectrumPlotContainer->updateGeometry();
+    }
 
     updateGeometry();
     emit preferredSizeChanged();
