@@ -56,7 +56,7 @@ CsvAnalysisTab::CsvAnalysisTab(const SessionData& session, QWidget* parent)
 void CsvAnalysisTab::createUi()
 {
     auto* rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(6, 6, 6, 6);
+    rootLayout->setContentsMargins(6, 6, 6, 0);
     rootLayout->setSpacing(10);
 
     // ===== TOP
@@ -82,6 +82,7 @@ void CsvAnalysisTab::createUi()
     leftColumnLayout->addWidget(m_controlsWidget, 0, Qt::AlignTop);
     leftColumnLayout->addStretch();
 
+    topLayout->addSpacing(20);
     topLayout->addWidget(leftColumnWidget, 0);
     topLayout->addWidget(m_resultsPanel, 0);
     topLayout->addWidget(dataPanel, 1);
@@ -124,6 +125,7 @@ QGroupBox* CsvAnalysisTab::createPlotPanel(QWidget* parent)
 {
     auto* plotGroup = new QGroupBox(parent);
     auto* plotLayout = new QVBoxLayout(plotGroup);
+    plotLayout->setContentsMargins(0, 0, 0, 0);
 
     m_csvAnalysisPlotWidget = new CsvAnalysisPlotWidget(plotGroup);
     plotLayout->addWidget(m_csvAnalysisPlotWidget);

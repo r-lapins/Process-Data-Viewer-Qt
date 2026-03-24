@@ -27,7 +27,7 @@ WavAnalysisTab::WavAnalysisTab(const SessionData& session, QWidget* parent)
 void WavAnalysisTab::createUi()
 {
     auto* rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(6, 6, 6, 6);
+    rootLayout->setContentsMargins(6, 6, 6, 0);
 
     // ===== TOP
     auto* topWidget = new QWidget(this);
@@ -40,6 +40,7 @@ void WavAnalysisTab::createUi()
 
     auto* resultsWidget = new QWidget(this);
     auto* resultsLayout = new QHBoxLayout(resultsWidget);
+    resultsLayout->setContentsMargins(0, 0, 0, 0);
 
     auto* statsPanel = createStatisticsPanel(resultsWidget);
     auto* alertsPanel = createAlertsPanel(resultsWidget);
@@ -49,6 +50,7 @@ void WavAnalysisTab::createUi()
 
     resultsWidget->setFixedWidth(600);
 
+    topLayout->addSpacing(20);
     topLayout->addWidget(m_controlsWidget, 0, Qt::AlignTop);
     topLayout->addWidget(resultsWidget, 0, Qt::AlignTop);
     topLayout->addStretch();
@@ -56,13 +58,13 @@ void WavAnalysisTab::createUi()
     topWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     // ===== BOTTOM
-    auto* bottomWidget = new QWidget(this);
-    auto* bottomLayout = new QVBoxLayout(bottomWidget);
+    auto* plotGroup = new QGroupBox(this);
+    auto* bottomLayout = new QVBoxLayout(plotGroup);
     bottomLayout->setContentsMargins(0, 0, 0, 0);
-    bottomLayout->setSpacing(10);
+    bottomLayout->setSpacing(0);
 
-    m_signalPlotContainer = createSignalPlot(bottomWidget);
-    m_spectrumPlotContainer = createSpectrumPlot(bottomWidget);
+    m_signalPlotContainer = createSignalPlot(plotGroup);
+    m_spectrumPlotContainer = createSpectrumPlot(plotGroup);
 
     m_signalPlotContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     m_spectrumPlotContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -74,7 +76,7 @@ void WavAnalysisTab::createUi()
     bottomLayout->addStretch(0);
 
     rootLayout->addWidget(topWidget, 0);
-    rootLayout->addWidget(bottomWidget, 1);
+    rootLayout->addWidget(plotGroup, 1);
     rootLayout->setSizeConstraint(QLayout::SetMinimumSize);
 }
 

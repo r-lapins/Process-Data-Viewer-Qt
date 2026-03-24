@@ -17,7 +17,7 @@ namespace pdv {
 
 MainWindow::MainWindow()
 {
-    setMaximumHeight(1000);
+    setMaximumHeight(1015);
     setMinimumHeight(250);
     setMaximumWidth(1800);
     setMinimumWidth(500);
