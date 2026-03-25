@@ -1,0 +1,26 @@
+Input file   : /home/lapin/Documents/QtProjekty/process_data_viewer_qt/examples/HDSDR_20230515_072359Z_15047kHz_AF.wav
+Sample rate  : 48000 Hz
+Channels     : 1
+Samples      : 949760
+From sample  : 4608
+Window size  : 16384
+Window       : Hamming
+Algorithm    : FFT
+Threshold    : 0.5
+Peak mode    : Local-Maxima
+Detected peaks: 22 | showing top 15
+  1. f = 7274.41 Hz    |X| = 47.35    bin = 2483
+  2. f = 7403.32 Hz    |X| = 44.43    bin = 2527
+  3. f = 7423.83 Hz    |X| = 44.09    bin = 2534
+  4. f = 7374.02 Hz    |X| = 42.38    bin = 2517
+  5. f = 7464.84 Hz    |X| = 41.11    bin = 2548
+  6. f = 7447.27 Hz    |X| = 41.09    bin = 2542
+  7. f = 7359.38 Hz    |X| = 38.58    bin = 2512
+  8. f = 7417.97 Hz    |X| = 37.27    bin = 2532
+  9. f = 7500.00 Hz    |X| = 36.27    bin = 2560
+ 10. f = 7523.44 Hz    |X| = 36.07    bin = 2568
+ 11. f = 7482.42 Hz    |X| = 35.71    bin = 2554
+ 12. f = 7297.85 Hz    |X| = 34.24    bin = 2491
+ 13. f = 7245.12 Hz    |X| = 33.00    bin = 2473
+ 14. f = 7570.31 Hz    |X| = 31.62    bin = 2584
+ 15. f = 7453.12 Hz    |X| = 30.31    bin = 2544

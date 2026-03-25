@@ -48,7 +48,7 @@ private:
     [[nodiscard]] static std::vector<double> selectSegment(
         std::span<const double> samples,
         std::size_t from,
-        std::size_t bins
+        std::size_t windowSize
         );
 
     static void computeBasicStats(

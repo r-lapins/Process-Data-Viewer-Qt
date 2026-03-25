@@ -13,6 +13,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
+#include <fstream>
+
 namespace pdv {
 
 WavAnalysisTab::WavAnalysisTab(const SessionData& session, QWidget* parent)
@@ -181,6 +183,9 @@ void WavAnalysisTab::connectControls()
 
     connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSignalPlotRequested, this, &WavAnalysisTab::exportSignalPlotPng);
     connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSpectrumPlotRequested, this, &WavAnalysisTab::exportSpectrumPlotPng);
+
+    connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSpectrumCsvRequested, this, &WavAnalysisTab::exportSpectrumCsv);
+    connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSpectrumReportRequested, this, &WavAnalysisTab::exportSpectrumReport);
 }
 
 void WavAnalysisTab::recomputeAnalysis()
@@ -391,6 +396,94 @@ void WavAnalysisTab::exportSpectrumPlotPng()
     }
 
     QMessageBox::information(this, "Export spectrum PNG", QString("Spectrum plot exported to:\n%1").arg(filePath));
+}
+
+void WavAnalysisTab::exportSpectrumCsv()
+{
+    if (m_controller == nullptr || !m_controller->hasResult()) {
+        QMessageBox::warning(this, "Export spectrum CSV", "No spectrum data available for export.");
+        return;
+    }
+
+    const auto& result = m_controller->result();
+
+    const QString filePath = QFileDialog::getSaveFileName(
+        this, "Export spectrum CSV", defaultExportPath("_spectrum.csv"), "CSV files (*.csv)");
+
+    if (filePath.isEmpty()) { return; }
+
+    std::ofstream out(filePath.toStdString());
+    if (!out) {
+        QMessageBox::critical(this, "Export spectrum CSV", QString("Failed to open output file:\n%1").arg(filePath));
+        return;
+    }
+
+    if (!pdt::write_spectrum_csv(out, result.spectrum) || !out) {
+        QMessageBox::critical(this, "Export spectrum CSV", QString("Failed to write CSV file:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export spectrum CSV", QString("Spectrum exported to:\n%1").arg(filePath));
+}
+
+void WavAnalysisTab::exportSpectrumReport()
+{
+    if (m_controller == nullptr || !m_controller->hasResult()) {
+        QMessageBox::warning(this, "Export spectrum report", "No analysis result available for export.");
+        return;
+    }
+
+    const auto& result = m_controller->result();
+    const auto report = buildSpectrumReport(result);
+
+    const QString filePath = QFileDialog::getSaveFileName(
+        this, "Export spectrum report", defaultExportPath("_spectrum_report.txt"), "Text files (*.txt);;All files (*)");
+
+    if (filePath.isEmpty()) { return; }
+
+    std::ofstream out(filePath.toStdString());
+    if (!out) {
+        QMessageBox::critical(this, "Export spectrum report", QString("Failed to open output file:\n%1").arg(filePath));
+        return;
+    }
+
+    if (!pdt::write_spectrum_report(out, report) || !out) {
+        QMessageBox::critical(this, "Export spectrum report", QString("Failed to write report file:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export spectrum report", QString("Report exported to:\n%1").arg(filePath));
+}
+
+pdt::SpectrumReport WavAnalysisTab::buildSpectrumReport(
+    const WavAnalysisEngine::AnalysisResult& result) const
+{
+    pdt::SpectrumReport report{};
+    report.spectrum = result.spectrum;
+    report.all_peaks = result.allPeaks;
+    report.top_peaks = result.dominantPeaks;
+
+    report.meta.input_path = m_session.filePath.toStdString();
+    report.meta.sample_rate = m_session.wavData.has_value() ? static_cast<double>(m_session.wavData->sample_rate) : 0.0;
+    report.meta.channels = m_session.wavData.has_value() ? static_cast<std::size_t>(m_session.wavData->channels) : 0;
+    report.meta.total_samples = m_session.wavData.has_value() ? m_session.wavData->samples.size() : 0;
+
+    const auto& settings = result.usedSettings;
+    report.meta.from = settings.from;
+    report.meta.windowSize = result.rawSegment.size();
+    report.meta.window = settings.useWindow ? toString(settings.window).toStdString() : "none";
+    report.meta.algorithm = toString(settings.algorithm).toStdString();
+    report.meta.threshold = settings.threshold;
+    report.meta.peak_mode = toString(settings.peakMode).toStdString();
+    report.meta.top = settings.topPeaks;
+
+    return report;
+}
+
+QString WavAnalysisTab::defaultExportPath(const QString& suffix) const
+{
+    const QFileInfo sourceInfo(m_session.filePath);
+    return sourceInfo.dir().filePath(sourceInfo.completeBaseName() + suffix);
 }
 
 QWidget* WavAnalysisTab::createSignalPlot(QWidget* parent)

@@ -5,6 +5,7 @@
 
 #include <pdt/signal/window.h>
 #include <pdt/signal/peak_detection.h>
+#include <pdt/signal/spectrum_output.h>
 
 class QLabel;
 class QListWidget;
@@ -50,6 +51,12 @@ private:
     void updatePlotVisibility();
     void exportSignalPlotPng();
     void exportSpectrumPlotPng();
+
+    void exportSpectrumCsv();
+    void exportSpectrumReport();
+
+    [[nodiscard]] pdt::SpectrumReport buildSpectrumReport(const WavAnalysisEngine::AnalysisResult& result) const;
+    [[nodiscard]] QString defaultExportPath(const QString& suffix) const;
 
     QString toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;

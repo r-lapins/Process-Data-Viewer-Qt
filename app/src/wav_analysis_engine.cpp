@@ -54,16 +54,13 @@ WavAnalysisEngine::analyze(const pdt::WavData& wav, const AnalysisSettings& sett
     }
 
     result.allPeaks = pdt::find_peaks(
-        result.spectrum.frequencies,
-        result.spectrum.magnitudes,
+        result.spectrum,
         settings.threshold,
         settings.peakMode
         );
 
-    result.dominantPeaks = pdt::detect_dominant_peaks(
-        result.spectrum,
-        settings.threshold,
-        settings.peakMode,
+    result.dominantPeaks = pdt::select_dominant_peaks(
+        result.allPeaks,
         settings.topPeaks
         );
 

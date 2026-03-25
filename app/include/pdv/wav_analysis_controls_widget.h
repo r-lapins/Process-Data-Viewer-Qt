@@ -31,10 +31,14 @@ public:
 
 signals:
     void analysisRequested();
+
     void signalPlotToggled(bool checked);
     void spectrumPlotToggled(bool checked);
     void exportSignalPlotRequested();
     void exportSpectrumPlotRequested();
+
+    void exportSpectrumCsvRequested();
+    void exportSpectrumReportRequested();
 
 private:
     void createUi(const SessionData& session);
@@ -68,6 +72,9 @@ private:
     QPushButton* m_showSpectrumButton = nullptr;
     QPushButton* m_exportSignalPlotButton = nullptr;
     QPushButton* m_exportSpectrumPlotButton = nullptr;
+
+    QPushButton* m_exportSpectrumCsvButton = nullptr;
+    QPushButton* m_exportSpectrumReportButton = nullptr;
 
     const SessionData* m_session = nullptr;
 };
