@@ -23,7 +23,7 @@ public:
         double threshold{0.20};
         std::size_t topPeaks{20};
         std::size_t from{0};
-        std::size_t bins{1024};
+        std::size_t windowSize{1024};
     };
 
     struct AnalysisResult {

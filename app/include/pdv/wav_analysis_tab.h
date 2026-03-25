@@ -60,7 +60,7 @@ private:
     QLabel* m_statsChannelsValueLabel = nullptr;
     QLabel* m_statsTotalSamplesValueLabel = nullptr;
     QLabel* m_statsUsedFromValueLabel = nullptr;
-    QLabel* m_statsUsedBinsValueLabel = nullptr;
+    QLabel* m_statsWindowSizeValueLabel = nullptr;
     QLabel* m_statsWindowValueLabel = nullptr;
     QLabel* m_statsAlgorithmValueLabel = nullptr;
     QLabel* m_statsThresholdValueLabel = nullptr;

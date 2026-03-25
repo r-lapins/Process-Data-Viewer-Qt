@@ -62,9 +62,9 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
 
     m_fromSpinBox = new QSpinBox(controlsGroup);
 
-    m_binsSpinBox = new QSpinBox(controlsGroup);
-    m_binsComboBox = new QComboBox(controlsGroup);
-    m_binsInputStack = new QStackedWidget(controlsGroup);
+    m_windowSizeSpinBox = new QSpinBox(controlsGroup);
+    m_windowSizeComboBox = new QComboBox(controlsGroup);
+    m_windowSizeInputStack = new QStackedWidget(controlsGroup);
 
     m_windowComboBox = new QComboBox(controlsGroup);
     m_algorithmComboBox = new QComboBox(controlsGroup);
@@ -80,12 +80,12 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_fromSpinBox->setRange(0, std::max(0, sampleCount > 0 ? sampleCount - 1 : 0));
     m_fromSpinBox->setValue(0);
 
-    m_binsSpinBox->setRange(1, std::max(1, sampleCount));
-    m_binsSpinBox->setValue(std::min(1024, std::max(1, sampleCount)));
+    m_windowSizeSpinBox->setRange(1, std::max(1, sampleCount));
+    m_windowSizeSpinBox->setValue(std::min(1024, std::max(1, sampleCount)));
 
-    m_binsInputStack->addWidget(m_binsSpinBox);
-    m_binsInputStack->addWidget(m_binsComboBox);
-    m_binsInputStack->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_windowSizeInputStack->addWidget(m_windowSizeSpinBox);
+    m_windowSizeInputStack->addWidget(m_windowSizeComboBox);
+    m_windowSizeInputStack->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     m_windowComboBox->addItem("Hann", static_cast<int>(pdt::WindowType::Hann));
     m_windowComboBox->addItem("Hamming", static_cast<int>(pdt::WindowType::Hamming));
@@ -110,7 +110,7 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     controlsLayout->addRow("Peak mode:", m_peakModeComboBox);
     controlsLayout->addRow("Threshold:", m_thresholdSpinBox);
     controlsLayout->addRow("Top peaks:", m_topPeaksSpinBox);
-    controlsLayout->addRow("Bins:", m_binsInputStack);
+    controlsLayout->addRow("Window size:", m_windowSizeInputStack);
     controlsLayout->addRow("From sample:", m_fromSpinBox);
 
     // Actions
@@ -162,8 +162,8 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     rootLayout->addStretch();
     rootLayout->addSpacing(10);
 
-    rebuildFftBinsCombo(session);
-    updateBinsInputMode();
+    rebuildFftWindowSizeCombo(session);
+    updateWindowSizeInputMode();
     updateFromSpinRange(session);
     updateFromSpinStep();
 }
@@ -175,7 +175,7 @@ void WavAnalysisControlsWidget::connectControls()
     connect(m_recomputeButton, &QPushButton::clicked, this, &WavAnalysisControlsWidget::analysisRequested);
 
     connect(m_algorithmComboBox, &QComboBox::currentIndexChanged, this, [this](int) {
-        updateBinsInputMode();
+        updateWindowSizeInputMode();
         if (m_session != nullptr) { updateFromSpinRange(*m_session); }
 
         updateFromSpinStep();
@@ -186,7 +186,7 @@ void WavAnalysisControlsWidget::connectControls()
     connect(m_windowComboBox, &QComboBox::currentIndexChanged, this, [this](int) { triggerAutoAnalysis(); });
     connect(m_thresholdSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double) { triggerAutoAnalysis(); });
 
-    connect(m_binsComboBox, &QComboBox::currentIndexChanged, this, [this](int) {
+    connect(m_windowSizeComboBox, &QComboBox::currentIndexChanged, this, [this](int) {
         if (m_session != nullptr) { updateFromSpinRange(*m_session); }
 
         updateFromSpinStep();
@@ -195,7 +195,7 @@ void WavAnalysisControlsWidget::connectControls()
 
     connect(m_topPeaksSpinBox, &QSpinBox::valueChanged, this, [this](int) { triggerAutoAnalysis(); });
     connect(m_fromSpinBox, &QSpinBox::valueChanged, this, [this](int) { triggerAutoAnalysis(); });
-    connect(m_binsSpinBox, &QSpinBox::valueChanged, this, [this](int) {
+    connect(m_windowSizeSpinBox, &QSpinBox::valueChanged, this, [this](int) {
         if (m_session != nullptr) { updateFromSpinRange(*m_session); }
         updateFromSpinStep();
         triggerAutoAnalysis();
@@ -224,7 +224,7 @@ WavAnalysisEngine::AnalysisSettings WavAnalysisControlsWidget::settings() const
     s.threshold = m_thresholdSpinBox->value();
     s.topPeaks = static_cast<std::size_t>(m_topPeaksSpinBox->value());
     s.from = static_cast<std::size_t>(m_fromSpinBox->value());
-    s.bins = selectedBins();
+    s.windowSize = selectedWindowSize();
 
     return s;
 }
@@ -262,15 +262,15 @@ void WavAnalysisControlsWidget::setBusy(bool busy)
     }
 }
 
-std::size_t WavAnalysisControlsWidget::selectedBins() const
+std::size_t WavAnalysisControlsWidget::selectedWindowSize() const
 {
     const auto selected = static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
     if (selected == WavAnalysisEngine::SpectrumAlgorithm::Fft) {
-        return static_cast<std::size_t>(m_binsComboBox->currentData().toULongLong());
+        return static_cast<std::size_t>(m_windowSizeComboBox->currentData().toULongLong());
     }
 
-    return static_cast<std::size_t>(m_binsSpinBox->value());
+    return static_cast<std::size_t>(m_windowSizeSpinBox->value());
 }
 
 WavAnalysisEngine::SpectrumAlgorithm WavAnalysisControlsWidget::selectedAlgorithm() const noexcept
@@ -290,24 +290,24 @@ void WavAnalysisControlsWidget::triggerAutoAnalysis()
     }
 }
 
-void WavAnalysisControlsWidget::updateBinsInputMode()
+void WavAnalysisControlsWidget::updateWindowSizeInputMode()
 {
     const auto selected = static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
     if (selected == WavAnalysisEngine::SpectrumAlgorithm::Fft) {
-        m_binsInputStack->setCurrentWidget(m_binsComboBox);
+        m_windowSizeInputStack->setCurrentWidget(m_windowSizeComboBox);
     } else {
-        m_binsInputStack->setCurrentWidget(m_binsSpinBox);
+        m_windowSizeInputStack->setCurrentWidget(m_windowSizeSpinBox);
     }
 }
 
-void WavAnalysisControlsWidget::rebuildFftBinsCombo(const SessionData& session)
+void WavAnalysisControlsWidget::rebuildFftWindowSizeCombo(const SessionData& session)
 {
     // It generates a list of valid FFT sizes (powers of 2)
     // and selects the best value based on the current UI state.
-    const qulonglong previousValue = m_binsComboBox->currentData().toULongLong();
+    const qulonglong previousValue = m_windowSizeComboBox->currentData().toULongLong();
 
-    m_binsComboBox->clear();
+    m_windowSizeComboBox->clear();
 
     if (!session.wavData.has_value()) { return; }
 
@@ -327,28 +327,28 @@ void WavAnalysisControlsWidget::rebuildFftBinsCombo(const SessionData& session)
     }
 
     for (std::size_t value : values) {
-        m_binsComboBox->addItem(
+        m_windowSizeComboBox->addItem(
             QString::number(static_cast<qulonglong>(value)),
             static_cast<qulonglong>(value)
             );
     }
 
-    if (m_binsComboBox->count() == 0) {
+    if (m_windowSizeComboBox->count() == 0) {
         return;
     }
 
     qulonglong targetValue = previousValue;
 
     if (targetValue == 0) {
-        targetValue = m_binsSpinBox->value() > 0
-                          ? static_cast<qulonglong>(m_binsSpinBox->value())
-                          : m_binsComboBox->itemData(m_binsComboBox->count() - 1).toULongLong();
+        targetValue = m_windowSizeSpinBox->value() > 0
+                          ? static_cast<qulonglong>(m_windowSizeSpinBox->value())
+                          : m_windowSizeComboBox->itemData(m_windowSizeComboBox->count() - 1).toULongLong();
     }
 
     // Pick the largest available value that does not exceed the target
     int bestIndex = 0;
-    for (int i = 0; i < m_binsComboBox->count(); ++i) {
-        const qulonglong value = m_binsComboBox->itemData(i).toULongLong();
+    for (int i = 0; i < m_windowSizeComboBox->count(); ++i) {
+        const qulonglong value = m_windowSizeComboBox->itemData(i).toULongLong();
         if (value <= targetValue) {
             bestIndex = i;
         } else {
@@ -356,7 +356,7 @@ void WavAnalysisControlsWidget::rebuildFftBinsCombo(const SessionData& session)
         }
     }
 
-    m_binsComboBox->setCurrentIndex(bestIndex);
+    m_windowSizeComboBox->setCurrentIndex(bestIndex);
 }
 
 void WavAnalysisControlsWidget::updateFromSpinRange(const SessionData& session)
@@ -372,11 +372,11 @@ void WavAnalysisControlsWidget::updateFromSpinRange(const SessionData& session)
         return;
     }
 
-    const std::size_t bins = selectedBins();
+    const std::size_t windowSize = selectedWindowSize();
     const std::size_t total = samples.size();
 
     // Keep the selected segment fully inside the available sample range
-    const int maxFrom = (bins >= total) ? 0 : static_cast<int>(total - bins);
+    const int maxFrom = (windowSize >= total) ? 0 : static_cast<int>(total - windowSize);
 
     m_fromSpinBox->setRange(0, maxFrom);
 
@@ -388,8 +388,8 @@ void WavAnalysisControlsWidget::updateFromSpinRange(const SessionData& session)
 void WavAnalysisControlsWidget::updateFromSpinStep()
 {
     // Scale navigation step with segment size to make larger windows easier to browse
-    const std::size_t bins = selectedBins();
-    const int step = std::max<int>(1, static_cast<int>(bins / 32));
+    const std::size_t windowSize = selectedWindowSize();
+    const int step = std::max<int>(1, static_cast<int>(windowSize / 32));
     m_fromSpinBox->setSingleStep(step);
 }
 

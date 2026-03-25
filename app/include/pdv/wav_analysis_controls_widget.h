@@ -40,29 +40,29 @@ private:
     void createUi(const SessionData& session);
     void connectControls();
 
-    [[nodiscard]] std::size_t selectedBins() const;
+    [[nodiscard]] std::size_t selectedWindowSize() const;
     [[nodiscard]] WavAnalysisEngine::SpectrumAlgorithm selectedAlgorithm() const noexcept;
     [[nodiscard]] bool useWindow() const noexcept;
 
     void triggerAutoAnalysis();
-    void updateBinsInputMode();
-    void rebuildFftBinsCombo(const SessionData& session);
+    void updateWindowSizeInputMode();
+    void rebuildFftWindowSizeCombo(const SessionData& session);
     void updateFromSpinRange(const SessionData& session);
     void updateFromSpinStep();
 
     QSpinBox* m_fromSpinBox = nullptr;
-    QSpinBox* m_binsSpinBox = nullptr;
+    QSpinBox* m_windowSizeSpinBox = nullptr;
     QSpinBox* m_topPeaksSpinBox = nullptr;
 
     QComboBox* m_windowComboBox = nullptr;
     QComboBox* m_algorithmComboBox = nullptr;
     QComboBox* m_peakModeComboBox = nullptr;
-    QComboBox* m_binsComboBox = nullptr;
+    QComboBox* m_windowSizeComboBox = nullptr;
 
     QCheckBox* m_autoUpdateCheckBox = nullptr;
     QPushButton* m_recomputeButton = nullptr;
     QDoubleSpinBox* m_thresholdSpinBox = nullptr;
-    QStackedWidget* m_binsInputStack = nullptr;
+    QStackedWidget* m_windowSizeInputStack = nullptr;
 
     QPushButton* m_showSignalButton = nullptr;
     QPushButton* m_showSpectrumButton = nullptr;

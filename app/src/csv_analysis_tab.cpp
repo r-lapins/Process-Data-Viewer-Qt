@@ -13,7 +13,6 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QLabel>
-#include <QListWidget>
 #include <QTableView>
 #include <QHeaderView>
 #include <QFormLayout>

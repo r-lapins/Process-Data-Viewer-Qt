@@ -19,7 +19,7 @@ WavAnalysisEngine::analyze(const pdt::WavData& wav, const AnalysisSettings& sett
         return result;
     }
 
-    result.rawSegment = selectSegment(wav.samples, settings.from, settings.bins);
+    result.rawSegment = selectSegment(wav.samples, settings.from, settings.windowSize);
     if (result.rawSegment.empty()) {
         return result;
     }
@@ -70,12 +70,12 @@ WavAnalysisEngine::analyze(const pdt::WavData& wav, const AnalysisSettings& sett
     return result;
 }
 
-// Extract analysis window starting at 'from' with length 'bins'.
+// Extract analysis window starting at 'from' with length 'windowSize'.
 // Clamps to available samples to avoid out-of-range access.
 std::vector<double> WavAnalysisEngine::selectSegment(
     std::span<const double> samples,
     std::size_t from,
-    std::size_t bins
+    std::size_t windowSize
     )
 {
     if (samples.empty() || from >= samples.size()) {
@@ -83,7 +83,7 @@ std::vector<double> WavAnalysisEngine::selectSegment(
     }
 
     const std::size_t available = samples.size() - from;
-    const std::size_t used = std::min(bins, available);
+    const std::size_t used = std::min(windowSize, available);
 
     return std::vector<double>(
         samples.begin() + static_cast<std::ptrdiff_t>(from),

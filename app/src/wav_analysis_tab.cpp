@@ -92,7 +92,7 @@ QWidget* WavAnalysisTab::createStatisticsPanel(QWidget* parent)
     m_statsChannelsValueLabel = new QLabel("-", statsGroup);
     m_statsTotalSamplesValueLabel = new QLabel("-", statsGroup);
     m_statsUsedFromValueLabel = new QLabel("-", statsGroup);
-    m_statsUsedBinsValueLabel = new QLabel("-", statsGroup);
+    m_statsWindowSizeValueLabel = new QLabel("-", statsGroup);
     m_statsWindowValueLabel = new QLabel("-", statsGroup);
     m_statsAlgorithmValueLabel = new QLabel("-", statsGroup);
     m_statsThresholdValueLabel = new QLabel("-", statsGroup);
@@ -111,7 +111,7 @@ QWidget* WavAnalysisTab::createStatisticsPanel(QWidget* parent)
     statsLayout->addRow("Peak mode:", m_statsPeakModeValueLabel);
     statsLayout->addRow("Total samples:", m_statsTotalSamplesValueLabel);
     statsLayout->addRow("From sample:", m_statsUsedFromValueLabel);
-    statsLayout->addRow("Bins:", m_statsUsedBinsValueLabel);
+    statsLayout->addRow("Window size:", m_statsWindowSizeValueLabel);
     statsLayout->addRow("Detected peaks:", m_statsDetectedPeaksValueLabel);
     statsLayout->addRow("Threshold:", m_statsThresholdValueLabel);
 
@@ -200,7 +200,7 @@ void WavAnalysisTab::clearStatistics()
     m_statsChannelsValueLabel->setText("-");
     m_statsTotalSamplesValueLabel->setText("-");
     m_statsUsedFromValueLabel->setText("-");
-    m_statsUsedBinsValueLabel->setText("-");
+    m_statsWindowSizeValueLabel->setText("-");
     m_statsWindowValueLabel->setText("-");
     m_statsAlgorithmValueLabel->setText("-");
     m_statsThresholdValueLabel->setText("-");
@@ -236,7 +236,7 @@ void WavAnalysisTab::renderStatistics(const WavAnalysisEngine::AnalysisResult& r
     m_statsChannelsValueLabel->setText(QString::number(wav.channels));
     m_statsTotalSamplesValueLabel->setText(QString::number(static_cast<qulonglong>(wav.samples.size())));
     m_statsUsedFromValueLabel->setText(QString::number(static_cast<qulonglong>(settings.from)));
-    m_statsUsedBinsValueLabel->setText(QString::number(static_cast<qulonglong>(result.rawSegment.size())));
+    m_statsWindowSizeValueLabel->setText(QString::number(static_cast<qulonglong>(result.rawSegment.size())));
     m_statsAlgorithmValueLabel->setText(toString(settings.algorithm));
     m_statsThresholdValueLabel->setText(QString::number(settings.threshold, 'g', 10));
     m_statsPeakModeValueLabel->setText(toString(settings.peakMode));
@@ -289,10 +289,10 @@ void WavAnalysisTab::renderAlerts(const WavAnalysisEngine::AnalysisResult& resul
 
     for (const auto& peak : result.dominantPeaks) {
         m_alertsListWidget->addItem(
-            QString("bin=%1 | freq=%2 Hz | mag=%3")
-                .arg(static_cast<qulonglong>(peak.index))
+            QString("f = %1 Hz | |X| = %2 | bin = %3")
                 .arg(peak.frequency, 0, 'f', 1)
                 .arg(peak.magnitude, 0, 'f', 2)
+                .arg(static_cast<qulonglong>(peak.index))
             );
     }
 }
