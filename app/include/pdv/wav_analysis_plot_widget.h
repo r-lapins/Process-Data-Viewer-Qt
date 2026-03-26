@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QtCharts/QChartView>
+#include "pdt/signal/spectrum.h"
 
 #include <span>
 
@@ -37,11 +38,7 @@ public:
     explicit SpectrumChartWidget(QWidget* parent = nullptr);
 
     void resetPlot();
-    void updatePlot(
-        std::span<const double> frequencies,
-        std::span<const double> magnitudes,
-        const QString& title
-        );
+    void updatePlot(const pdt::Spectrum& spectrum, const QString& title);
 
 private:
     QLineSeries* m_series = nullptr;

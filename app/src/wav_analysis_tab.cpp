@@ -348,8 +348,8 @@ void WavAnalysisTab::updatePlotVisibility()
         m_spectrumPlotContainer->updateGeometry();
     }
 
-    updateGeometry();
-    emit preferredSizeChanged();
+    const QFileInfo fileInfo(m_session.filePath);
+    m_spectrumChartWidget->updatePlot(result.spectrum, QString("Spectrum plot - %1").arg(fileInfo.fileName()));
 }
 
 void WavAnalysisTab::exportSignalPlotPng()

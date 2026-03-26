@@ -151,13 +151,12 @@ void SpectrumChartWidget::resetPlot()
     m_axisY->setRange(0, 1);
 }
 
-void SpectrumChartWidget::updatePlot(
-    std::span<const double> frequencies,
-    std::span<const double> magnitudes,
-    const QString& title
-)
+void SpectrumChartWidget::updatePlot(const pdt::Spectrum& spectrum, const QString& title)
 {
     resetPlot();
+
+    const auto& frequencies = spectrum.frequencies;
+    const auto& magnitudes = spectrum.magnitudes;
 
     if (frequencies.empty() || magnitudes.empty() || frequencies.size() != magnitudes.size()) {
         return;
