@@ -36,10 +36,14 @@ private:
     void startRecompute();
     void handleRecomputeFinished();
 
+    bool tryUpdateTopAnomaliesOnly();
+
+    [[nodiscard]] static bool requiresFullRecompute(const CsvAnalysisEngine::AnalysisSettings& previous,
+                                                    const CsvAnalysisEngine::AnalysisSettings& current) noexcept;
+
     const SessionData& m_session;
     CsvAnalysisEngine::AnalysisSettings m_settings{};
     std::optional<CsvAnalysisEngine::AnalysisResult> m_result;
-
     QFutureWatcher<CsvAnalysisEngine::AnalysisResult>* m_recomputeWatcher = nullptr;
     bool m_isBusy = false;
     bool m_hasPendingRecompute = false;
