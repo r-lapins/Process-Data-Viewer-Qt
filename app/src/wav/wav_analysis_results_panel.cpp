@@ -1,4 +1,4 @@
-#include "pdv/wav_analysis_results_panel.h"
+#include "pdv/wav/wav_analysis_results_panel.h"
 
 #include <QFormLayout>
 #include <QGroupBox>

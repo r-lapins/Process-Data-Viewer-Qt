@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pdv/analysis_tab.h"
-#include "pdv/wav_analysis_engine.h"
+#include "pdv/core/analysis_tab.h"
+#include "pdv/wav/wav_analysis_engine.h"
 
 #include <pdt/signal/window.h>
 #include <pdt/signal/peak_detection.h>

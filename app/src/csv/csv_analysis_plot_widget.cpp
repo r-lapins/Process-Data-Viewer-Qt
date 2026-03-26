@@ -1,4 +1,4 @@
-#include "pdv/csv_analysis_plot_widget.h"
+#include "pdv/csv/csv_analysis_plot_widget.h"
 
 #include <QFont>
 #include <QPointF>

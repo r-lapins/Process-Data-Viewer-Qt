@@ -1,4 +1,4 @@
-#include "pdv/wav_analysis_controller.h"
+#include "pdv/wav/wav_analysis_controller.h"
 
 #include <QtConcurrent/QtConcurrentRun>
 

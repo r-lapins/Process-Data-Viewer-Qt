@@ -1,4 +1,4 @@
-#include "pdv/csv_analysis_results_panel.h"
+#include "pdv/csv/csv_analysis_results_panel.h"
 
 #include <QDateTime>
 #include <QFormLayout>

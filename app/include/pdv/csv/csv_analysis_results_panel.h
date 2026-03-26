@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pdv/csv_analysis_engine.h"
-#include "pdv/session_data.h"
+#include "pdv/csv/csv_analysis_engine.h"
+#include "pdv/core/session_data.h"
 
 #include <QWidget>
 

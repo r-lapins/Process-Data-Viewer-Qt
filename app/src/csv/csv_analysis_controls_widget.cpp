@@ -1,4 +1,4 @@
-#include "pdv/csv_analysis_controls_widget.h"
+#include "pdv/csv/csv_analysis_controls_widget.h"
 
 #include <set>
 #include <chrono>

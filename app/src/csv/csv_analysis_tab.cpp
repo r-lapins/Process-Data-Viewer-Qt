@@ -1,6 +1,6 @@
-#include "pdv/csv_analysis_tab.h"
-#include "pdv/csv_analysis_plot_widget.h"
-#include "pdv/csv_analysis_results_panel.h"
+#include "pdv/csv/csv_analysis_tab.h"
+#include "pdv/csv/csv_analysis_plot_widget.h"
+#include "pdv/csv/csv_analysis_results_panel.h"
 
 #include <pdt/core/report.h>
 

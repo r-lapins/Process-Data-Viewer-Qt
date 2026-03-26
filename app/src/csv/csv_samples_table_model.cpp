@@ -1,4 +1,4 @@
-#include "pdv/csv_samples_table_model.h"
+#include "pdv/csv/csv_samples_table_model.h"
 
 #include <QString>
 

@@ -3,8 +3,8 @@
 #include <QObject>
 #include <QFutureWatcher>
 
-#include "pdv/session_data.h"
-#include "pdv/wav_analysis_engine.h"
+#include "pdv/core/session_data.h"
+#include "pdv/wav/wav_analysis_engine.h"
 
 #include <optional>
 

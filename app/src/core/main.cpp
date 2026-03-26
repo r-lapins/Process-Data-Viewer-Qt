@@ -1,5 +1,5 @@
 #include <QApplication>
-#include "pdv/main_window.h"
+#include "pdv/core/main_window.h"
 
 int main(int argc, char *argv[])
 {

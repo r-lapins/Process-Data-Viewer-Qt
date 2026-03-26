@@ -2,7 +2,7 @@
 
 #include <QString>
 
-#include "pdv/session_data.h"
+#include "pdv/core/session_data.h"
 
 namespace pdv {
 

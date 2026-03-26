@@ -1,7 +1,6 @@
-#include "pdv/analysis_tab.h"
-
-#include "pdv/csv_analysis_tab.h"
-#include "pdv/wav_analysis_tab.h"
+#include "pdv/core/analysis_tab.h"
+#include "pdv/csv/csv_analysis_tab.h"
+#include "pdv/wav/wav_analysis_tab.h"
 
 #include <QFileInfo>
 

@@ -1,8 +1,8 @@
-#include "pdv/wav_analysis_tab.h"
-#include "pdv/wav_analysis_plot_widget.h"
-#include "pdv/wav_analysis_controller.h"
-#include "pdv/wav_analysis_controls_widget.h"
-#include "pdv/wav_analysis_results_panel.h"
+#include "pdv/wav/wav_analysis_tab.h"
+#include "pdv/wav/wav_analysis_plot_widget.h"
+#include "pdv/wav/wav_analysis_controller.h"
+#include "pdv/wav/wav_analysis_controls_widget.h"
+#include "pdv/wav/wav_analysis_results_panel.h"
 
 #include <QFileInfo>
 #include <QGroupBox>

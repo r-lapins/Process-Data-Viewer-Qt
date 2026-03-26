@@ -1,10 +1,10 @@
 #pragma once
 
-#include "pdv/analysis_tab.h"
-#include "pdv/csv_samples_table_model.h"
-#include "pdv/csv_analysis_engine.h"
-#include "pdv/csv_analysis_controls_widget.h"
-#include "pdv/csv_analysis_controller.h"
+#include "pdv/core/analysis_tab.h"
+#include "pdv/csv/csv_samples_table_model.h"
+#include "pdv/csv/csv_analysis_engine.h"
+#include "pdv/csv/csv_analysis_controls_widget.h"
+#include "pdv/csv/csv_analysis_controller.h"
 
 class QLabel;
 class QTableView;

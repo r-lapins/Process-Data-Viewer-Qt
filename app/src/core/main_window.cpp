@@ -1,5 +1,5 @@
-#include "pdv/main_window.h"
-#include "pdv/analysis_tab.h"
+#include "pdv/core/main_window.h"
+#include "pdv/core/analysis_tab.h"
 
 #include <QAction>
 #include <QApplication>

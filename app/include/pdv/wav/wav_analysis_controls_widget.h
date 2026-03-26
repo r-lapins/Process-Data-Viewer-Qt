@@ -2,7 +2,7 @@
 
 #include <QWidget>
 
-#include "pdv/wav_analysis_engine.h"
+#include "pdv/wav/wav_analysis_engine.h"
 
 class QCheckBox;
 class QComboBox;
