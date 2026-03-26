@@ -2,8 +2,7 @@
 
 namespace pdv {
 
-CsvAnalysisEngine::AnalysisResult
-CsvAnalysisEngine::analyze(const pdt::DataSet& dataSet, const AnalysisSettings& settings)
+CsvAnalysisEngine::AnalysisResult CsvAnalysisEngine::analyze(const pdt::DataSet& dataSet, const AnalysisSettings& settings)
 {
     AnalysisResult result{};
     result.usedSettings = settings;
@@ -15,37 +14,15 @@ CsvAnalysisEngine::analyze(const pdt::DataSet& dataSet, const AnalysisSettings& 
 
     result.filteredDataSet = dataSet.filter(toFilterOptions(settings));
 
-    if (result.filteredDataSet.empty()) {
-        return result;
-    }
+    if (result.filteredDataSet.empty()) { return result; }
 
     computeBasicStats(result.filteredDataSet, result);
 
-    result.anomalySummary = pdt::detect_anomalies_global(
-        result.filteredDataSet,
-        toPdtMethod(settings.anomalyMethod),
-        settings.anomalyThreshold,
-        settings.topN
-        );
-
-    const auto& samples = result.filteredDataSet.samples();
-    // Preserve the same ordering as anomalySummary.top so each displayed anomaly
-    // can be paired with its corresponding row index in the filtered table view.
-    // In this dataset model each sample is expected to be unique by (timestamp, sensor, value).
-    for (const auto& anomaly : result.anomalySummary.top) {
-        auto it = std::find_if(samples.begin(), samples.end(),
-                               [&anomaly](const auto& sample) {
-                                   return sample.timestamp == anomaly.timestamp &&
-                                          sample.sensor == anomaly.sensor &&
-                                          sample.value == anomaly.value;
-                               });
-
-        if (it != samples.end()) {
-            result.anomalyIndices.push_back(
-                static_cast<std::size_t>(std::distance(samples.begin(), it))
-                );
-        }
-    }
+    result.anomalySummary = pdt::detect_anomalies_global(result.filteredDataSet,
+                                                         settings.anomalyMethod,
+                                                         settings.anomalyThreshold,
+                                                         settings.topN
+                                                         );
 
     return result;
 }
@@ -76,31 +53,9 @@ pdt::FilterOptions CsvAnalysisEngine::toFilterOptions(const AnalysisSettings& se
     return filter;
 }
 
-pdt::AnomalyMethod CsvAnalysisEngine::toPdtMethod(AnomalyMethod method)
+void CsvAnalysisEngine::computeBasicStats(const pdt::DataSet& dataSet, AnalysisResult& result)
 {
-    using GuiMethod = AnomalyMethod;
-    using PdtMethod = pdt::AnomalyMethod;
-
-    switch (method) {
-    case GuiMethod::ZScore:
-        return PdtMethod::ZScore;
-    case GuiMethod::IQR:
-        return PdtMethod::IQR;
-    case GuiMethod::MAD:
-        return PdtMethod::MAD;
-    }
-
-    return PdtMethod::ZScore;
-}
-
-void CsvAnalysisEngine::computeBasicStats(
-    const pdt::DataSet& dataSet,
-    AnalysisResult& result
-    )
-{
-    if (dataSet.empty()) {
-        return;
-    }
+    if (dataSet.empty()) { return; }
 
     const auto stats = dataSet.stats();
     result.minValue = stats.min;

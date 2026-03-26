@@ -14,12 +14,6 @@ namespace pdv {
 class CsvAnalysisEngine
 {
 public:
-    enum class AnomalyMethod {
-        ZScore,
-        IQR,
-        MAD
-    };
-
     struct AnalysisSettings {
         std::string sensor;
         bool useSensor{false};
@@ -30,7 +24,7 @@ public:
         std::optional<std::chrono::sys_seconds> from;
         std::optional<std::chrono::sys_seconds> to;
 
-        AnomalyMethod anomalyMethod{AnomalyMethod::ZScore};
+        pdt::AnomalyMethod anomalyMethod{pdt::AnomalyMethod::ZScore};
         double anomalyThreshold{1.5};
         std::size_t topN{20};
     };
@@ -39,8 +33,6 @@ public:
         AnalysisSettings usedSettings{};
         pdt::DataSet filteredDataSet;
         pdt::AnomalySummary anomalySummary{};
-
-        std::vector<std::size_t> anomalyIndices;
 
         double minValue{0.0};
         double maxValue{0.0};
@@ -55,7 +47,6 @@ public:
 private:
     [[nodiscard]] static bool hasInvalidTimeRange(const AnalysisSettings& settings);
     [[nodiscard]] static pdt::FilterOptions toFilterOptions(const AnalysisSettings& settings);
-    [[nodiscard]] static pdt::AnomalyMethod toPdtMethod(AnomalyMethod method);
     static void computeBasicStats(const pdt::DataSet& dataSet, AnalysisResult& result);
 };
 

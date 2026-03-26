@@ -50,8 +50,8 @@ private:
     void triggerAnalysisIfAutoUpdate();
 
     void updateAnomalyThresholdControls();
-    void applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyMethod method);
-    [[nodiscard]] CsvAnalysisEngine::AnomalyMethod currentAnomalyMethod() const;
+    void applyAnomalyMethodUi(pdt::AnomalyMethod method);
+    [[nodiscard]] pdt::AnomalyMethod currentAnomalyMethod() const;
 
     QCheckBox* m_useSensorCheckBox = nullptr;
     QComboBox* m_sensorComboBox = nullptr;
@@ -80,7 +80,7 @@ private:
 
     // Remembers the threshold last used for each anomaly method,
     // so switching methods in the UI restores the previous value.
-    CsvAnalysisEngine::AnomalyMethod m_currentMethodUi = CsvAnalysisEngine::AnomalyMethod::ZScore;
+    pdt::AnomalyMethod m_currentMethodUi = pdt::AnomalyMethod::ZScore;
     double m_lastZScoreThreshold = 3.0;
     double m_lastIqrThreshold = 1.5;
     double m_lastMadThreshold = 3.5;

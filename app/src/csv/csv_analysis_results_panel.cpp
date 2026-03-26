@@ -1,4 +1,5 @@
 #include "pdv/csv/csv_analysis_results_panel.h"
+#include "pdt/core/output.h"
 
 #include <QDateTime>
 #include <QFormLayout>
@@ -12,9 +13,9 @@
 namespace pdv {
 namespace {
 
-QString anomalyMethodToString(CsvAnalysisEngine::AnomalyMethod method)
+QString anomalyMethodToString(pdt::AnomalyMethod method)
 {
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
 
     switch (method) {
     case ZScore: return "Z-score";
@@ -25,22 +26,9 @@ QString anomalyMethodToString(CsvAnalysisEngine::AnomalyMethod method)
     return "Unknown";
 }
 
-QString anomalyScoreLabel(CsvAnalysisEngine::AnomalyMethod method)
+QString anomalyThresholdLabelText(pdt::AnomalyMethod method)
 {
-    using enum CsvAnalysisEngine::AnomalyMethod;
-
-    switch (method) {
-    case ZScore: return "z";
-    case IQR:    return "iqr";
-    case MAD:    return "mad";
-    }
-
-    return "score";
-}
-
-QString anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method)
-{
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
 
     switch (method) {
     case ZScore: return "Z-threshold:";
@@ -51,9 +39,9 @@ QString anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method)
     return "Threshold:";
 }
 
-QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method)
+QString anomalyThresholdTooltip(pdt::AnomalyMethod method)
 {
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
 
     switch (method) {
     case ZScore:    return "Absolute z-score threshold used to classify anomalies.";
@@ -202,9 +190,7 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
 {
     clearStatistics();
 
-    if (!session.dataSet.has_value() || session.dataSet->empty()) {
-        return;
-    }
+    if (!session.dataSet.has_value() || session.dataSet->empty()) { return; }
 
     const auto& settings = result.usedSettings;
 
@@ -219,9 +205,7 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
         const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.from->time_since_epoch()).count();
         m_statsFromValueLabel->setText(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), QTimeZone::UTC).toString("yyyy-MM-dd HH:mm:ss"));
     }
-    else {
-        m_statsFromValueLabel->setText("-");
-    }
+    else { m_statsFromValueLabel->setText("-"); }
 
     if (settings.useTo && settings.to.has_value()) {
         const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.to->time_since_epoch()).count();
@@ -229,13 +213,10 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
         m_statsToValueLabel->setText(
             QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss")
             );
-    } else {
-        m_statsToValueLabel->setText("-");
     }
+    else { m_statsToValueLabel->setText("-"); }
 
-    m_statsDetectedAnomaliesValueLabel->setText(
-        QString::number(static_cast<qulonglong>(result.anomalySummary.count))
-        );
+    m_statsDetectedAnomaliesValueLabel->setText(QString::number(static_cast<qulonglong>(result.anomalySummary.all.size())));
 
     m_statsMinValueLabel->setText(QString::number(result.minValue, 'f', 2));
     m_statsMaxValueLabel->setText(QString::number(result.maxValue, 'f', 2));
@@ -259,9 +240,7 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
 {
     clearAlerts();
 
-    if (!session.dataSet.has_value()) {
-        return;
-    }
+    if (!session.dataSet.has_value()) { return; }
 
     if (result.invalidTimeRange) {
         m_alertsListWidget->clear();
@@ -274,35 +253,15 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
 
     if (result.filteredDataSet.empty() || result.anomalySummary.top.empty()) {
         m_alertsListWidget->addItem("No anomalies detected");
-    }
-    else {
-        const QString scoreLabel = anomalyScoreLabel(result.usedSettings.anomalyMethod);
-
+    } else {
         for (std::size_t anomalyPos = 0; anomalyPos < result.anomalySummary.top.size(); ++anomalyPos) {
-            const auto& a = result.anomalySummary.top[anomalyPos];
+            const auto& anomaly = result.anomalySummary.top[anomalyPos];
 
-            const auto ts = std::chrono::system_clock::to_time_t(a.timestamp);
-            const QDateTime dt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(ts), QTimeZone::UTC);
-            const QString dateText = dt.date().toString("yyyy-MM-dd");
-            const QString timeText = dt.time().toString("HH:mm:ss");
+            const std::size_t displayIndex = anomaly.index + 1;
 
-            QString indexText = "?";
-
-            if (anomalyPos < result.anomalyIndices.size()) {
-                // 1-based row index, matching the row numbering visible in the table
-                indexText = QString::number(static_cast<qulonglong>(result.anomalyIndices[anomalyPos] + 1));
-            }
-
-            m_alertsListWidget->addItem(
-                QString("#%1  |  %2  %3  |  %4  |  value = %5  |  %6 = %7")
-                    .arg(indexText,
-                         dateText,
-                         timeText,
-                         QString::fromStdString(a.sensor),
-                         QString::number(a.value, 'f', 1),
-                         scoreLabel,
-                         QString::number(a.score, 'f', 2))
-                );
+            m_alertsListWidget->addItem(QString::fromStdString(
+                pdt::format_anomaly_line(anomaly, displayIndex, result.usedSettings.anomalyMethod)
+                ));
         }
     }
 
@@ -318,6 +277,5 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
         }
     }
 }
-
 
 } // namespace pdv

@@ -46,9 +46,9 @@ const char* kToggleButtonStyle2 = R"(
     }
 )";
 
-QString anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method)
+QString anomalyThresholdLabelText(pdt::AnomalyMethod method)
 {
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
     switch (method) {
     case ZScore:    return "Z-threshold:";
     case IQR:       return "IQR multiplier:";
@@ -58,9 +58,9 @@ QString anomalyThresholdLabelText(CsvAnalysisEngine::AnomalyMethod method)
     return "Threshold:";
 }
 
-QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method)
+QString anomalyThresholdTooltip(pdt::AnomalyMethod method)
 {
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
     switch (method) {
     case ZScore:    return "Absolute z-score threshold used to classify anomalies.";
     case IQR:       return "Multiplier applied to the interquartile range: lower = Q1 - k·IQR, upper = Q3 + k·IQR.";
@@ -72,8 +72,7 @@ QString anomalyThresholdTooltip(CsvAnalysisEngine::AnomalyMethod method)
 
 } // namespace
 
-CsvAnalysisControlsWidget::CsvAnalysisControlsWidget(const SessionData& session, QWidget* parent)
-    : QWidget(parent)
+CsvAnalysisControlsWidget::CsvAnalysisControlsWidget(const SessionData& session, QWidget* parent) : QWidget(parent)
 {
     createUi();
     initializeFromSession(session);
@@ -409,7 +408,7 @@ void CsvAnalysisControlsWidget::updateAnomalyThresholdControls()
     // before switching the UI to the newly selected method.
     const double currentValue = m_anomalyThresholdSpinBox->value();
 
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
     switch (m_currentMethodUi) {
     case ZScore:
         m_lastZScoreThreshold = currentValue;
@@ -428,7 +427,7 @@ void CsvAnalysisControlsWidget::updateAnomalyThresholdControls()
     applyAnomalyMethodUi(m_currentMethodUi);
 }
 
-void CsvAnalysisControlsWidget::applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyMethod method)
+void CsvAnalysisControlsWidget::applyAnomalyMethodUi(pdt::AnomalyMethod method)
 {
     const QSignalBlocker blocker(m_anomalyThresholdSpinBox);
     // Prevent valueChanged from firing while the control is reconfigured.
@@ -439,7 +438,7 @@ void CsvAnalysisControlsWidget::applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyM
 
     m_anomalyThresholdSpinBox->setDecimals(2);
 
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
     switch (method) {
     case ZScore:
         m_anomalyThresholdSpinBox->setRange(0.1, 10.0);
@@ -461,19 +460,15 @@ void CsvAnalysisControlsWidget::applyAnomalyMethodUi(CsvAnalysisEngine::AnomalyM
     }
 }
 
-CsvAnalysisEngine::AnomalyMethod CsvAnalysisControlsWidget::currentAnomalyMethod() const
+pdt::AnomalyMethod CsvAnalysisControlsWidget::currentAnomalyMethod() const
 {
-    using enum CsvAnalysisEngine::AnomalyMethod;
+    using enum pdt::AnomalyMethod;
 
     switch (m_anomalyMethodComboBox->currentIndex()) {
-    case 0:
-        return ZScore;
-    case 1:
-        return IQR;
-    case 2:
-        return MAD;
-    default:
-        return ZScore;
+    case 0:     return ZScore;
+    case 1:     return IQR;
+    case 2:     return MAD;
+    default:    return ZScore;
     }
 }
 

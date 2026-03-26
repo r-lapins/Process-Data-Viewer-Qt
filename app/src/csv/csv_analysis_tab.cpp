@@ -2,7 +2,7 @@
 #include "pdv/csv/csv_analysis_plot_widget.h"
 #include "pdv/csv/csv_analysis_results_panel.h"
 
-#include <pdt/core/report.h>
+#include <pdt/core/output.h>
 
 #include <fstream>
 #include <numeric>
@@ -22,23 +22,6 @@
 #include <QPixmap>
 
 namespace pdv {
-namespace {
-
-pdt::AnomalyMethod toPdtAnomalyMethod(CsvAnalysisEngine::AnomalyMethod method)
-{
-    using GUI = CsvAnalysisEngine::AnomalyMethod;
-    using PDT = pdt::AnomalyMethod;
-
-    switch (method) {
-    case GUI::ZScore:   return PDT::ZScore;
-    case GUI::IQR:      return PDT::IQR;
-    case GUI::MAD:      return PDT::MAD;
-    }
-
-    return PDT::ZScore;
-}
-
-} // namespace
 
 CsvAnalysisTab::CsvAnalysisTab(const SessionData& session, QWidget* parent)
     : AnalysisTab(session, parent)
@@ -171,9 +154,7 @@ void CsvAnalysisTab::connectControls()
 
 void CsvAnalysisTab::recomputeAnalysis()
 {
-    if (m_controller == nullptr || m_controlsWidget == nullptr) {
-        return;
-    }
+    if (m_controller == nullptr || m_controlsWidget == nullptr) { return; }
 
     m_controller->setSettings(m_controlsWidget->settings());
     m_controller->recompute();
@@ -226,17 +207,16 @@ void CsvAnalysisTab::exportJsonReport()
     if (settings.useTo && settings.to.has_value()) { ctx.to = settings.to; }
 
     ctx.anomaly_threshold = settings.anomalyThreshold;
-    ctx.anomaly_method = toPdtAnomalyMethod(settings.anomalyMethod);
+    ctx.anomaly_method = settings.anomalyMethod;
     ctx.top_n = settings.topN;
 
     if (exportPerSensor) {
         const auto perSensorStats = result.filteredDataSet.stats_by_sensor();
-        const auto perSensorAnomalies = pdt::detect_anomalies_per_sensor(
-            result.filteredDataSet,
-            toPdtAnomalyMethod(settings.anomalyMethod),
-            settings.anomalyThreshold,
-            settings.topN
-            );
+        const auto perSensorAnomalies = pdt::detect_anomalies_per_sensor(result.filteredDataSet,
+                                                                         settings.anomalyMethod,
+                                                                         settings.anomalyThreshold,
+                                                                         settings.topN
+                                                                         );
 
         pdt::write_json_report(out, ctx, perSensorStats, perSensorAnomalies);
     } else {
@@ -312,19 +292,18 @@ void CsvAnalysisTab::renderPlot(const CsvAnalysisEngine::AnalysisResult& result)
                            [](const auto& s) { return s.value; });
 
     // X positions of detected anomalies (indices -> 1-based sample number)
-    std::vector<double> markerXValues(result.anomalyIndices.size());
-    std::ranges::transform(result.anomalyIndices, markerXValues.begin(),
-                           [](std::size_t idx) { return static_cast<double>(idx + 1); });
+    std::vector<double> markerXValues(result.anomalySummary.top.size());
+    std::ranges::transform(result.anomalySummary.top, markerXValues.begin(),
+                           [](const auto& anomaly) { return static_cast<double>(anomaly.index + 1); });
 
     // Plot anomaly markers at the mean level so they remain visible
     // without needing a separate series with original sample lookup.
     const QFileInfo fileInfo(m_session.filePath);
-    m_csvAnalysisPlotWidget->updatePlotWithMarkers(
-        xValues,
-        yValues,
-        markerXValues,
-        result.meanValue,
-        QString("CSV plot - %1").arg(fileInfo.fileName())
+    m_csvAnalysisPlotWidget->updatePlotWithMarkers(xValues,
+                                                   yValues,
+                                                   markerXValues,
+                                                   result.meanValue,
+                                                   QString("CSV plot - %1").arg(fileInfo.fileName())
         );
 }
 
@@ -364,9 +343,7 @@ void CsvAnalysisTab::renderData(const CsvAnalysisEngine::AnalysisResult& result)
 
 void CsvAnalysisTab::renderResults(const CsvAnalysisEngine::AnalysisResult& result)
 {
-    if (m_resultsPanel == nullptr || m_controlsWidget == nullptr) {
-        return;
-    }
+    if (m_resultsPanel == nullptr || m_controlsWidget == nullptr) { return; }
 
     m_resultsPanel->setResults(m_session, result, m_controlsWidget->isShowSkippedRowsEnabled());
 }
