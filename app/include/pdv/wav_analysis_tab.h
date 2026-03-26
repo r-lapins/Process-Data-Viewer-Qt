@@ -17,6 +17,7 @@ class SignalChartWidget;
 class SpectrumChartWidget;
 class WavAnalysisController;
 class WavAnalysisControlsWidget;
+class WavAnalysisResultsPanel;
 
 class WavAnalysisTab : public AnalysisTab
 {
@@ -28,8 +29,6 @@ public:
 private:
     // ui creation
     void createUi();
-    QWidget* createStatisticsPanel(QWidget* parent);
-    QWidget* createAlertsPanel(QWidget* parent);
     QWidget* createSignalPlot(QWidget* parent);
     QWidget* createSpectrumPlot(QWidget* parent);
 
@@ -38,47 +37,15 @@ private:
     void recomputeAnalysis();
 
     // ui updates
-    void renderStatistics(const WavAnalysisEngine::AnalysisResult& result);
-    void renderAlerts(const WavAnalysisEngine::AnalysisResult& result);
+    void updatePlotVisibility();
     void renderSignalPlot(const WavAnalysisEngine::AnalysisResult& result);
     void renderSpectrumPlot(const WavAnalysisEngine::AnalysisResult& result);
     void renderAnalysis(const WavAnalysisEngine::AnalysisResult& result);
 
-    // resets/helpers
-    void clearStatistics();
-    void clearAlerts();
-
-    void updatePlotVisibility();
     void exportSignalPlotPng();
     void exportSpectrumPlotPng();
-
     void exportSpectrumCsv();
     void exportSpectrumReport();
-
-    [[nodiscard]] pdt::SpectrumReport buildSpectrumReport(const WavAnalysisEngine::AnalysisResult& result) const;
-    [[nodiscard]] QString defaultExportPath(const QString& suffix) const;
-
-    QString toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const;
-    QString toString(pdt::WindowType window) const;
-    QString toString(pdt::PeakDetectionMode mode) const;
-
-    QLabel* m_statsFileTypeValueLabel = nullptr;
-    QLabel* m_statsSampleRateValueLabel = nullptr;
-    QLabel* m_statsChannelsValueLabel = nullptr;
-    QLabel* m_statsTotalSamplesValueLabel = nullptr;
-    QLabel* m_statsUsedFromValueLabel = nullptr;
-    QLabel* m_statsWindowSizeValueLabel = nullptr;
-    QLabel* m_statsWindowValueLabel = nullptr;
-    QLabel* m_statsAlgorithmValueLabel = nullptr;
-    QLabel* m_statsThresholdValueLabel = nullptr;
-    QLabel* m_statsPeakModeValueLabel = nullptr;
-    QLabel* m_statsDetectedPeaksValueLabel = nullptr;
-    QLabel* m_statsMinValueLabel = nullptr;
-    QLabel* m_statsMaxValueLabel = nullptr;
-    QLabel* m_statsMeanValueLabel = nullptr;
-    QLabel* m_statsStddevValueLabel = nullptr;
-
-    QListWidget* m_alertsListWidget = nullptr;
 
     SignalChartWidget* m_signalChartWidget = nullptr;
     SpectrumChartWidget* m_spectrumChartWidget = nullptr;
@@ -88,6 +55,7 @@ private:
 
     WavAnalysisController* m_controller = nullptr;
     WavAnalysisControlsWidget* m_controlsWidget = nullptr;
+    WavAnalysisResultsPanel* m_resultsPanel = nullptr;
 };
 
 } // namespace pdv
