@@ -20,9 +20,7 @@ public:
     explicit SignalChartWidget(QWidget* parent = nullptr);
 
     void resetPlot();
-    void updatePlot(std::span<const double> segment,
-                    const QString& fromInfo,
-                    const QString& title);
+    void updatePlot(std::span<const double> segment, const QString& fromInfo, const QString& title);
 
 private:
     QLineSeries* m_series = nullptr;

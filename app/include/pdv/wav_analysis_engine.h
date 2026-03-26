@@ -45,16 +45,9 @@ public:
     [[nodiscard]] static AnalysisResult analyze(const pdt::WavData& wav, const AnalysisSettings& settings);
 
 private:
-    [[nodiscard]] static std::vector<double> selectSegment(
-        std::span<const double> samples,
-        std::size_t from,
-        std::size_t windowSize
-        );
+    [[nodiscard]] static std::vector<double> selectSegment(std::span<const double> samples, std::size_t from, std::size_t windowSize);
 
-    static void computeBasicStats(
-        std::span<const double> samples,
-        AnalysisResult& result
-        );
+    static void computeBasicStats(std::span<const double> samples, AnalysisResult& result);
 };
 
 } // namespace pdv

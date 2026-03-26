@@ -5,6 +5,7 @@
 #include <limits>
 #include <vector>
 
+#include <QLabel>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -128,8 +129,8 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_showSignalButton = new QPushButton("Signal", actionsGroup);
     m_showSpectrumButton = new QPushButton("Spectrum", actionsGroup);
 
-    m_exportSignalPlotButton = new QPushButton("Export PNG", actionsGroup);
-    m_exportSpectrumPlotButton = new QPushButton("Export PNG", actionsGroup);
+    m_exportSignalPlotButton = new QPushButton("Signal", actionsGroup);
+    m_exportSpectrumPlotButton = new QPushButton("Spectrum", actionsGroup);
 
     m_showSignalButton->setCheckable(true);
     m_showSignalButton->setChecked(false);
@@ -139,22 +140,20 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_showSpectrumButton->setChecked(false);
     m_showSpectrumButton->setStyleSheet(kToggleButtonStyle);
 
-    auto* plotSignalWidget = new QWidget(actionsGroup);
-    auto* plotSignalLayout = new QHBoxLayout(plotSignalWidget);
-    plotSignalLayout->setContentsMargins(0, 0, 0, 0);
-    plotSignalLayout->addWidget(m_showSignalButton);
-    plotSignalLayout->addWidget(m_showSpectrumButton);
-    plotSignalWidget->setStyleSheet("background-color: #2a2e30;");
+    auto* plotsShowWidget = new QWidget(actionsGroup);
+    auto* plotsShowLayout = new QHBoxLayout(plotsShowWidget);
+    plotsShowLayout->setContentsMargins(0, 0, 0, 0);
+    plotsShowLayout->addWidget(m_showSignalButton);
+    plotsShowLayout->addWidget(m_showSpectrumButton);
 
-    auto* plotSpectrumWidget = new QWidget(actionsGroup);
-    auto* plotSpectrumLayout = new QHBoxLayout(plotSpectrumWidget);
-    plotSpectrumLayout->setContentsMargins(0, 0, 0, 0);
-    plotSpectrumLayout->addWidget(m_exportSignalPlotButton);
-    plotSpectrumLayout->addWidget(m_exportSpectrumPlotButton);
-    plotSpectrumWidget->setStyleSheet("background-color: #302e2a;");
+    auto* plotsExportWidget = new QWidget(actionsGroup);
+    auto* plotsExportLayout = new QHBoxLayout(plotsExportWidget);
+    plotsExportLayout->setContentsMargins(0, 0, 0, 0);
+    plotsExportLayout->addWidget(m_exportSignalPlotButton);
+    plotsExportLayout->addWidget(m_exportSpectrumPlotButton);
 
     // export csv / report
-    m_exportSpectrumCsvButton = new QPushButton("Export CSV", actionsGroup);
+    m_exportSpectrumCsvButton = new QPushButton("CSV", actionsGroup);
     m_exportSpectrumReportButton = new QPushButton("Report", actionsGroup);
 
     auto* outputWidget = new QWidget(actionsGroup);
@@ -163,12 +162,19 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     outputLayout->addWidget(m_exportSpectrumReportButton);
     outputLayout->addWidget(m_exportSpectrumCsvButton);
 
+    auto* lab_1 = new QLabel("Show plot:", actionsGroup);
+    auto* lab_2 = new QLabel("Export plot to PNG:", actionsGroup);
+    auto* lab_3 = new QLabel("Output:", actionsGroup);
+
     // composing
-    actionsLayout->addWidget(m_autoUpdateCheckBox, 0, 0, Qt::AlignRight);
-    actionsLayout->addWidget(m_recomputeButton, 0, 1);
-    actionsLayout->addWidget(plotSignalWidget, 1, 0, 1, 2);
-    actionsLayout->addWidget(plotSpectrumWidget, 2, 0, 1, 2);
-    actionsLayout->addWidget(outputWidget, 3, 0, 1, 2);
+    actionsLayout->addWidget(m_recomputeButton, 0, 0);
+    actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 0, Qt::AlignRight);
+    actionsLayout->addWidget(lab_1, 2, 0, 1, 2);
+    actionsLayout->addWidget(plotsShowWidget, 3, 0, 1, 2);
+    actionsLayout->addWidget(lab_2, 4, 0, 1, 2);
+    actionsLayout->addWidget(plotsExportWidget, 5, 0, 1, 2);
+    actionsLayout->addWidget(lab_3, 6, 0, 1, 2);
+    actionsLayout->addWidget(outputWidget, 7, 0, 1, 2);
 
     rootLayout->addWidget(controlsGroup, 0, Qt::AlignTop);
     rootLayout->addWidget(actionsGroup, 0, Qt::AlignBottom);

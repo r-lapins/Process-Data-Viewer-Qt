@@ -57,9 +57,7 @@ void SignalChartWidget::resetPlot()
     m_axisY->setRange(-1, 1);
 }
 
-void SignalChartWidget::updatePlot(std::span<const double> segment,
-                                   const QString& fromInfo,
-                                   const QString& title)
+void SignalChartWidget::updatePlot(std::span<const double> segment, const QString& fromInfo, const QString& title)
 {
     resetPlot();
 
