@@ -17,10 +17,10 @@ class WavAnalysisController : public QObject
 public:
     explicit WavAnalysisController(const SessionData& session, QObject* parent = nullptr);
 
+    void recompute();
+
     void setSettings(const WavAnalysisEngine::AnalysisSettings& settings);
     [[nodiscard]] const WavAnalysisEngine::AnalysisSettings& settings() const noexcept;
-
-    void recompute();
 
     [[nodiscard]] bool isBusy() const noexcept;
     [[nodiscard]] bool hasResult() const noexcept;
@@ -35,6 +35,12 @@ signals:
 private:
     void startRecompute();
     void handleRecomputeFinished();
+
+    bool tryUpdateDominantPeaksOnly();
+
+    [[nodiscard]] static bool requiresFullRecompute(
+        const WavAnalysisEngine::AnalysisSettings& previous,
+        const WavAnalysisEngine::AnalysisSettings& current) noexcept;
 
     const SessionData& m_session;
     WavAnalysisEngine::AnalysisSettings m_settings{};

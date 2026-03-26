@@ -23,6 +23,11 @@ void WavAnalysisController::recompute()
         return;
     }
 
+    if (tryUpdateDominantPeaksOnly()) {
+        emit resultChanged(*m_result);
+        return;
+    }
+
     startRecompute();
 }
 
@@ -58,6 +63,38 @@ void WavAnalysisController::handleRecomputeFinished()
         m_hasPendingRecompute = false;
         startRecompute();
     }
+}
+
+bool WavAnalysisController::tryUpdateDominantPeaksOnly()
+{
+    if (!m_result.has_value()) {
+        return false;
+    }
+
+    const auto& previousSettings = m_result->usedSettings;
+    const auto& currentSettings = m_settings;
+
+    if (requiresFullRecompute(previousSettings, currentSettings)) {
+        return false;
+    }
+
+    m_result->usedSettings.topPeaks = currentSettings.topPeaks;
+    m_result->dominantPeaks = pdt::select_dominant_peaks(m_result->allPeaks, currentSettings.topPeaks);
+
+    return true;
+}
+
+bool WavAnalysisController::requiresFullRecompute(
+    const WavAnalysisEngine::AnalysisSettings& previous,
+    const WavAnalysisEngine::AnalysisSettings& current) noexcept
+{
+    return previous.algorithm != current.algorithm ||
+           previous.useWindow != current.useWindow ||
+           previous.window != current.window ||
+           previous.peakMode != current.peakMode ||
+           previous.threshold != current.threshold ||
+           previous.from != current.from ||
+           previous.windowSize != current.windowSize;
 }
 
 void WavAnalysisController::setSettings(const WavAnalysisEngine::AnalysisSettings& settings)
