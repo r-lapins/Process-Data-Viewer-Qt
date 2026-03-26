@@ -15,8 +15,7 @@
 
 namespace pdv {
 
-CsvAnalysisPlotWidget::CsvAnalysisPlotWidget(QWidget* parent)
-    : QChartView(parent)
+CsvAnalysisPlotWidget::CsvAnalysisPlotWidget(QWidget* parent) : QChartView(parent)
 {
     auto* chart = new QChart();
     m_series = new QLineSeries();
