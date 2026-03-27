@@ -106,6 +106,12 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_topPeaksSpinBox->setRange(1, 100);
     m_topPeaksSpinBox->setValue(20);
 
+    m_autoUpdateCheckBox = new QCheckBox("Auto update", controlsGroup);
+    m_recomputeButton = new QPushButton("Recompute", controlsGroup);
+
+    m_autoUpdateCheckBox->setChecked(true);
+    m_recomputeButton->setEnabled(!m_autoUpdateCheckBox->isChecked());
+
     controlsLayout->addRow("Algorithm:", m_algorithmComboBox);
     controlsLayout->addRow("Window:", m_windowComboBox);
     controlsLayout->addRow("Peak mode:", m_peakModeComboBox);
@@ -113,17 +119,13 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     controlsLayout->addRow("Top peaks:", m_topPeaksSpinBox);
     controlsLayout->addRow("Window size:", m_windowSizeInputStack);
     controlsLayout->addRow("From sample:", m_fromSpinBox);
+    controlsLayout->addRow(" ", m_recomputeButton);
+    controlsLayout->addRow(" ", m_autoUpdateCheckBox);
 
     // Actions
     auto* actionsGroup = new QGroupBox(this);
     auto* actionsLayout = new QGridLayout(actionsGroup);
     actionsLayout->setContentsMargins(0, 0, 0, 0);
-
-    m_autoUpdateCheckBox = new QCheckBox("Auto update", actionsGroup);
-    m_recomputeButton = new QPushButton("Recompute", actionsGroup);
-
-    m_autoUpdateCheckBox->setChecked(true);
-    m_recomputeButton->setEnabled(!m_autoUpdateCheckBox->isChecked());
 
     // Signal / Spectrum
     m_showSignalButton = new QPushButton("Signal", actionsGroup);
@@ -165,10 +167,9 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     auto* lab_1 = new QLabel("Show plot:", actionsGroup);
     auto* lab_2 = new QLabel("Export plot to PNG:", actionsGroup);
     auto* lab_3 = new QLabel("Output:", actionsGroup);
+    auto* lab_0 = new QLabel(" ", actionsGroup);
 
     // composing
-    actionsLayout->addWidget(m_recomputeButton, 0, 0);
-    actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 0, Qt::AlignRight);
     actionsLayout->addWidget(lab_1, 2, 0, 1, 2);
     actionsLayout->addWidget(plotsShowWidget, 3, 0, 1, 2);
     actionsLayout->addWidget(lab_2, 4, 0, 1, 2);

@@ -26,6 +26,12 @@ namespace {
 
 constexpr auto kRecomputeLabel = "Recompute";
 constexpr auto kBusyLabel = "Wait for it.";
+constexpr auto exportJsonTooltip =
+    "Export analysis results to JSON.\n"
+    "When 'per sensor' is enabled, results are grouped by sensor instead of a single global summary.";
+constexpr auto exportMarkedCsvTooltip =
+    "Export filtered dataset to CSV.\n"
+    "Top detected anomalies are marked by inserting a line \"anomaly\" after each corresponding row.";
 
 const char* kToggleButtonStyle = R"(
     QPushButton {
@@ -164,6 +170,9 @@ void CsvAnalysisControlsWidget::createUi()
     m_exportJsonButton = new QPushButton("Export JSON", actionsGroup);
     m_exportPlotButton = new QPushButton("Export PNG", actionsGroup);
     m_exportMarkedCsvButton = new QPushButton("Export CSV", actionsGroup);
+    m_exportMarkedCsvButton->setToolTip(exportMarkedCsvTooltip);
+    m_exportJsonButton->setToolTip(exportJsonTooltip);
+    m_exportPlotButton->setEnabled(false);
 
     m_showPlotButton = new QPushButton("Plot", actionsGroup);
     m_showPlotButton->setCheckable(true);
@@ -172,6 +181,7 @@ void CsvAnalysisControlsWidget::createUi()
 
     m_exportPerSensorCheckBox = new QCheckBox("Per-sensor", actionsGroup);
     m_exportPerSensorCheckBox->setChecked(false);
+    m_exportPerSensorCheckBox->setToolTip(exportJsonTooltip);
 
     m_showSkippedRowsCheckBox = new QCheckBox("Skipped rows", actionsGroup);
     m_showSkippedRowsCheckBox->setChecked(false);
@@ -179,15 +189,15 @@ void CsvAnalysisControlsWidget::createUi()
     m_autoUpdateCheckBox = new QCheckBox("Auto update", actionsGroup);
     m_autoUpdateCheckBox->setChecked(true);
 
-    actionsLayout->addWidget(m_recomputeButton, 0, 0);
     actionsLayout->addWidget(m_showPlotButton, 0, 1);
-    actionsLayout->addWidget(m_exportMarkedCsvButton, 2, 0);
+    actionsLayout->addWidget(m_recomputeButton, 0, 2);
+    actionsLayout->addWidget(m_exportJsonButton, 2, 0);
     actionsLayout->addWidget(m_exportPlotButton, 2, 1);
-    actionsLayout->addWidget(m_exportJsonButton, 2, 2);
+    actionsLayout->addWidget(m_exportMarkedCsvButton, 2, 2);
 
-    actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 0);
-    actionsLayout->addWidget(m_showSkippedRowsCheckBox, 1, 1);
-    actionsLayout->addWidget(m_exportPerSensorCheckBox, 1, 2);
+    actionsLayout->addWidget(m_showSkippedRowsCheckBox, 0, 0);
+    actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 2);
+    actionsLayout->addWidget(m_exportPerSensorCheckBox, 3, 0);
 
     // Root
     rootLayout->addWidget(controlsGroup, 0, Qt::AlignTop);
@@ -197,6 +207,8 @@ void CsvAnalysisControlsWidget::createUi()
 
 void CsvAnalysisControlsWidget::connectControls()
 {
+    connect(m_showPlotButton, &QPushButton::toggled, m_exportPlotButton, &QWidget::setEnabled);
+
     connect(m_exportMarkedCsvButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportMarkedCsvRequested);
     connect(m_exportPlotButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportPlotRequested);
     connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::analysisRequested);
