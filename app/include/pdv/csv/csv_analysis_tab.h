@@ -38,6 +38,7 @@ private:
     void recomputeAnalysis();
     void exportJsonReport();
     void exportPlotPng();
+    void exportMarkedCsv();
 
     void updatePlotVisibility();
     void renderPlot(const CsvAnalysisEngine::AnalysisResult& result);

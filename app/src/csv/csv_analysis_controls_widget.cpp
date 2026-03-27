@@ -163,6 +163,7 @@ void CsvAnalysisControlsWidget::createUi()
     m_recomputeButton = new QPushButton("Recompute", actionsGroup);
     m_exportJsonButton = new QPushButton("Export JSON", actionsGroup);
     m_exportPlotButton = new QPushButton("Export PNG", actionsGroup);
+    m_exportMarkedCsvButton = new QPushButton("Export CSV", actionsGroup);
 
     m_showPlotButton = new QPushButton("Plot", actionsGroup);
     m_showPlotButton->setCheckable(true);
@@ -180,8 +181,9 @@ void CsvAnalysisControlsWidget::createUi()
 
     actionsLayout->addWidget(m_recomputeButton, 0, 0);
     actionsLayout->addWidget(m_showPlotButton, 0, 1);
-    actionsLayout->addWidget(m_exportJsonButton, 2, 2);
+    actionsLayout->addWidget(m_exportMarkedCsvButton, 2, 0);
     actionsLayout->addWidget(m_exportPlotButton, 2, 1);
+    actionsLayout->addWidget(m_exportJsonButton, 2, 2);
 
     actionsLayout->addWidget(m_autoUpdateCheckBox, 1, 0);
     actionsLayout->addWidget(m_showSkippedRowsCheckBox, 1, 1);
@@ -195,6 +197,7 @@ void CsvAnalysisControlsWidget::createUi()
 
 void CsvAnalysisControlsWidget::connectControls()
 {
+    connect(m_exportMarkedCsvButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportMarkedCsvRequested);
     connect(m_exportPlotButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportPlotRequested);
     connect(m_recomputeButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::analysisRequested);
     connect(m_exportJsonButton, &QPushButton::clicked, this, &CsvAnalysisControlsWidget::exportJsonRequested);
@@ -307,8 +310,8 @@ void CsvAnalysisControlsWidget::initializeDateControls(const SessionData& sessio
     const auto maxSecs =
         std::chrono::duration_cast<std::chrono::seconds>(maxTs.time_since_epoch()).count();
 
-    const QDateTime minDt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(minSecs));
-    const QDateTime maxDt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(maxSecs));
+    const QDateTime minDt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(minSecs), QTimeZone::UTC);
+    const QDateTime maxDt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(maxSecs), QTimeZone::UTC);
 
     m_useFromCheckBox->setEnabled(true);
     m_useToCheckBox->setEnabled(true);
@@ -348,12 +351,12 @@ CsvAnalysisEngine::AnalysisSettings CsvAnalysisControlsWidget::settings() const
     s.useTo = m_useToCheckBox->isChecked();
 
     if (s.useFrom) {
-        const QDateTime dt(m_fromDateEdit->date(), m_fromTimeEdit->time());
+        const QDateTime dt(m_fromDateEdit->date(), m_fromTimeEdit->time(), QTimeZone::UTC);
         s.from = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
     }
 
     if (s.useTo) {
-        const QDateTime dt(m_toDateEdit->date(), m_toTimeEdit->time());
+        const QDateTime dt(m_toDateEdit->date(), m_toTimeEdit->time(), QTimeZone::UTC);
         s.to = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
     }
 

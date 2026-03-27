@@ -123,6 +123,7 @@ void CsvAnalysisTab::connectControls()
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::analysisRequested, this, &CsvAnalysisTab::recomputeAnalysis);
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::exportJsonRequested, this, &CsvAnalysisTab::exportJsonReport);
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::exportPlotRequested, this, &CsvAnalysisTab::exportPlotPng);
+    connect(m_controlsWidget, &CsvAnalysisControlsWidget::exportMarkedCsvRequested, this, &CsvAnalysisTab::exportMarkedCsv);
 
     connect(m_controlsWidget, &CsvAnalysisControlsWidget::showPlotChanged,
             this, [this]() {
@@ -253,6 +254,40 @@ void CsvAnalysisTab::exportPlotPng()
     }
 
     QMessageBox::information(this, "Export plot PNG", QString("Plot exported to:\n%1").arg(filePath));
+}
+
+void CsvAnalysisTab::exportMarkedCsv()
+{
+    if (m_controller == nullptr || !m_controller->hasResult()) {
+        QMessageBox::warning(this, "Export marked CSV", "No analysis result available for export.");
+        return;
+    }
+
+    const auto& result = m_controller->result();
+
+    if (result.filteredDataSet.empty()) {
+        QMessageBox::warning(this, "Export marked CSV", "No filtered data available for export.");
+        return;
+    }
+
+    const QFileInfo sourceInfo(m_session.filePath);
+    const QString defaultName = sourceInfo.dir().filePath(sourceInfo.completeBaseName() + "_marked.csv");
+
+    const QString filePath = QFileDialog::getSaveFileName(this, "Export marked CSV", defaultName, "CSV files (*.csv)");
+
+    if (filePath.isEmpty()) { return; }
+
+    std::ofstream out(filePath.toStdString());
+    if (!out) {QMessageBox::critical(this, "Export marked CSV", QString("Failed to open output file:\n%1").arg(filePath));
+        return;
+    }
+
+    if (!pdt::write_csv_with_anomaly_markers(out, result.filteredDataSet, result.anomalySummary.top) || !out) {
+        QMessageBox::critical(this, "Export marked CSV", QString("Failed to write CSV file:\n%1").arg(filePath));
+        return;
+    }
+
+    QMessageBox::information(this, "Export marked CSV", QString("Marked CSV exported to:\n%1").arg(filePath));
 }
 
 void CsvAnalysisTab::updatePlotVisibility()
