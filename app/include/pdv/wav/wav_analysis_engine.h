@@ -1,8 +1,8 @@
 #pragma once
 
-#include <pdt/signal/window.h>
-#include <pdt/signal/peak_detection.h>
-#include <pdt/signal/wav_reader.h>
+#include <pdt/wav/window.h>
+#include <pdt/wav/peak_detection.h>
+#include <pdt/wav/wav_reader.h>
 
 #include <vector>
 #include <span>

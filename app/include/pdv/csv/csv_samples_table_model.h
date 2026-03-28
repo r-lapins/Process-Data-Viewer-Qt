@@ -4,7 +4,7 @@
 
 #include <optional>
 
-#include <pdt/core/dataset.h>
+#include <pdt/csv/dataset.h>
 
 namespace pdv {
 

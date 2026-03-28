@@ -2,7 +2,7 @@
 #include "pdv/csv/csv_analysis_plot_widget.h"
 #include "pdv/csv/csv_analysis_results_panel.h"
 
-#include <pdt/core/output.h>
+#include <pdt/csv/output.h>
 
 #include <fstream>
 #include <numeric>
@@ -198,8 +198,8 @@ void CsvAnalysisTab::exportJsonReport()
     }
 
     pdt::ReportContext ctx{};
-    ctx.parsed_ok = m_session.parsedOk;
-    ctx.skipped = m_session.skipped;
+    ctx.parsed_ok = m_session.csvData ? m_session.csvData->parsed_ok : 0;
+    ctx.skipped = m_session.csvData ? m_session.csvData->skipped : 0;
     ctx.total = m_session.dataSet->size();
     ctx.filtered = result.filteredDataSet.size();
 

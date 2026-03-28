@@ -5,9 +5,9 @@
 #include <exception>
 #include <fstream>
 
-#include <pdt/core/csv_reader.h>
-#include <pdt/core/dataset.h>
-#include <pdt/signal/wav_reader.h>
+#include <pdt/csv/csv_reader.h>
+#include <pdt/csv/dataset.h>
+#include <pdt/wav/wav_reader.h>
 
 namespace pdv {
 
@@ -49,10 +49,7 @@ LoadResult FileLoaderService::loadCsv(const QString &filePath) const
         session.kind = SessionData::FileKind::Csv;
         session.filePath = filePath;
         session.dataSet = pdt::DataSet(std::move(importResult.samples));
-
-        session.skipped = importResult.skipped;
-        session.parsedOk = importResult.parsed_ok;
-        session.skippedRows = std::move(importResult.skipped_rows);
+        session.csvData = std::move(importResult);
 
         return LoadResult{
             .success = true,

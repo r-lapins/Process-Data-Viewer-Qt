@@ -1,7 +1,7 @@
 #include "pdv/wav/wav_analysis_engine.h"
 
-#include <pdt/signal/dft.h>
-#include <pdt/signal/fft.h>
+#include <pdt/wav/dft.h>
+#include <pdt/wav/fft.h>
 
 #include <algorithm>
 #include <cmath>

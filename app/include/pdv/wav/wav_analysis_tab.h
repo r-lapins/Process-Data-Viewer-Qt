@@ -3,9 +3,9 @@
 #include "pdv/core/analysis_tab.h"
 #include "pdv/wav/wav_analysis_engine.h"
 
-#include <pdt/signal/window.h>
-#include <pdt/signal/peak_detection.h>
-#include <pdt/signal/spectrum_output.h>
+#include <pdt/wav/window.h>
+#include <pdt/wav/peak_detection.h>
+#include <pdt/wav/spectrum_output.h>
 
 class QLabel;
 class QListWidget;

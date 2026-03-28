@@ -1,5 +1,6 @@
 #include "pdv/csv/csv_analysis_results_panel.h"
-#include "pdt/core/output.h"
+
+#include "pdt/csv/output.h"
 
 #include <QDateTime>
 #include <QFormLayout>
@@ -195,7 +196,7 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
     const auto& settings = result.usedSettings;
 
     m_statsFileTypeValueLabel->setText("CSV");
-    m_statsSkippedValueLabel->setText(QString::number(static_cast<qulonglong>(session.skipped)));
+    m_statsSkippedValueLabel->setText(QString::number(static_cast<qulonglong>(session.csvData->skipped)));
     m_statsTotalValueLabel->setText(QString::number(static_cast<qulonglong>(session.dataSet->size())));
     m_statsFilteredValueLabel->setText(QString::number(static_cast<qulonglong>(result.filteredDataSet.size())));
 
@@ -265,10 +266,10 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
         }
     }
 
-    if (!session.skippedRows.empty() && showSkippedRows) {
+    if (session.csvData.has_value() && !session.csvData->skipped_rows.empty() && showSkippedRows) {
         m_alertsListWidget->addItem("------------ Skipped rows ------------");
 
-        for (const auto& row : session.skippedRows) {
+        for (const auto& row : session.csvData->skipped_rows) {
             m_alertsListWidget->addItem(
                 QString("line %1: %2")
                     .arg(row.line_number)

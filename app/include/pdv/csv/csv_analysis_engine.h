@@ -1,10 +1,9 @@
 #pragma once
 
-#include <pdt/core/dataset.h>
-#include <pdt/core/anomaly.h>
+#include <pdt/csv/dataset.h>
+#include <pdt/csv/anomaly.h>
 
 #include <string>
-#include <vector>
 #include <optional>
 #include <cstddef>
 #include <chrono>
@@ -15,12 +14,11 @@ class CsvAnalysisEngine
 {
 public:
     struct AnalysisSettings {
-        std::string sensor;
         bool useSensor{false};
-
         bool useFrom{false};
         bool useTo{false};
 
+        std::string sensor;
         std::optional<std::chrono::sys_seconds> from;
         std::optional<std::chrono::sys_seconds> to;
 
