@@ -2,12 +2,9 @@
 
 #include <QString>
 
-#include <vector>
-#include <cstddef>
-
-#include <pdt/core/dataset.h>
-#include <pdt/signal/wav_reader.h>
-#include <pdt/core/csv_reader.h>
+#include <pdt/csv/dataset.h>
+#include <pdt/wav/wav_reader.h>
+#include <pdt/csv/csv_reader.h>
 
 namespace pdv {
 
@@ -22,12 +19,9 @@ struct SessionData
     FileKind kind = FileKind::Unknown;
     QString filePath;
 
+    std::optional<pdt::CsvData> csvData;
     std::optional<pdt::DataSet> dataSet;
     std::optional<pdt::WavData> wavData;
-
-    std::size_t skipped{0};
-    std::size_t parsedOk{0};
-    std::vector<pdt::SkippedRow> skippedRows;
 };
 
 struct LoadResult
