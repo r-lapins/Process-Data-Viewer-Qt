@@ -191,13 +191,13 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
 {
     clearStatistics();
 
-    if (!session.dataSet.has_value() || session.dataSet->empty()) { return; }
+    if (!session.csvData.has_value() || session.csvData->dataSet.empty()) { return; }
 
     const auto& settings = result.usedSettings;
 
     m_statsFileTypeValueLabel->setText("CSV");
     m_statsSkippedValueLabel->setText(QString::number(static_cast<qulonglong>(session.csvData->skipped)));
-    m_statsTotalValueLabel->setText(QString::number(static_cast<qulonglong>(session.dataSet->size())));
+    m_statsTotalValueLabel->setText(QString::number(static_cast<qulonglong>(session.csvData->dataSet.size())));
     m_statsFilteredValueLabel->setText(QString::number(static_cast<qulonglong>(result.filteredDataSet.size())));
 
     m_statsSensorValueLabel->setText( settings.useSensor ? QString::fromStdString(settings.sensor) : "All" );
@@ -212,7 +212,7 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
         const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.to->time_since_epoch()).count();
 
         m_statsToValueLabel->setText(
-            QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs)).toString("yyyy-MM-dd HH:mm:ss")
+            QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), QTimeZone::UTC).toString("yyyy-MM-dd HH:mm:ss")
             );
     }
     else { m_statsToValueLabel->setText("-"); }
@@ -241,7 +241,7 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
 {
     clearAlerts();
 
-    if (!session.dataSet.has_value()) { return; }
+    if (!session.csvData.has_value()) { return; }
 
     if (result.invalidTimeRange) {
         m_alertsListWidget->clear();

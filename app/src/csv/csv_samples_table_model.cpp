@@ -2,6 +2,10 @@
 
 #include <QString>
 
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
 namespace pdv {
 namespace {
 
@@ -30,7 +34,7 @@ CsvSamplesTableModel::CsvSamplesTableModel(QObject *parent) : QAbstractTableMode
 {
 }
 
-void CsvSamplesTableModel::setDataSet(const std::optional<pdt::DataSet> &dataSet)
+void CsvSamplesTableModel::setDataSet(const pdt::DataSet &dataSet)
 {
     beginResetModel();
     m_dataSet = dataSet;
@@ -63,7 +67,7 @@ QVariant CsvSamplesTableModel::data(const QModelIndex &index, int role) const
     if (role != Qt::DisplayRole) { return {}; }
 
     const auto& samples = m_dataSet->samples();
-    const auto row = static_cast<std::size_t>(index.row());
+    const auto row      = static_cast<std::size_t>(index.row());
 
     if (row >= samples.size()) { return {}; }
 

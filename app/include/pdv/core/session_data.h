@@ -2,9 +2,10 @@
 
 #include <QString>
 
-#include <pdt/csv/dataset.h>
-#include <pdt/wav/wav_reader.h>
+#include <optional>
+
 #include <pdt/csv/csv_reader.h>
+#include <pdt/wav/wav_reader.h>
 
 namespace pdv {
 
@@ -20,7 +21,6 @@ struct SessionData
     QString filePath;
 
     std::optional<pdt::CsvData> csvData;
-    std::optional<pdt::DataSet> dataSet;
     std::optional<pdt::WavData> wavData;
 };
 

@@ -155,15 +155,13 @@ void CsvAnalysisTab::connectControls()
 
 void CsvAnalysisTab::recomputeAnalysis()
 {
-    if (m_controller == nullptr || m_controlsWidget == nullptr) { return; }
-
     m_controller->setSettings(m_controlsWidget->settings());
     m_controller->recompute();
 }
 
 void CsvAnalysisTab::exportJsonReport()
 {
-    if (!m_session.dataSet.has_value()) {
+    if (!m_session.csvData.has_value()) {
         QMessageBox::warning(this, "Export JSON", "No CSV data available for export.");
         return;
     }
@@ -200,7 +198,7 @@ void CsvAnalysisTab::exportJsonReport()
     pdt::ReportContext ctx{};
     ctx.parsed_ok = m_session.csvData ? m_session.csvData->parsed_ok : 0;
     ctx.skipped = m_session.csvData ? m_session.csvData->skipped : 0;
-    ctx.total = m_session.dataSet->size();
+    ctx.total = m_session.csvData->dataSet.size();
     ctx.filtered = result.filteredDataSet.size();
 
     if (!exportPerSensor && settings.useSensor && !settings.sensor.empty()) { ctx.sensor = settings.sensor; }

@@ -15,7 +15,7 @@ class CsvSamplesTableModel : public QAbstractTableModel
 public:
     explicit CsvSamplesTableModel(QObject* parent = nullptr);
 
-    void setDataSet(const std::optional<pdt::DataSet>& dataSet);
+    void setDataSet(const pdt::DataSet& dataSet);
     void clear();
 
     int rowCount(const QModelIndex& parent = {}) const override;

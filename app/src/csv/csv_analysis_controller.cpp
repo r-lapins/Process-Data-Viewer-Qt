@@ -32,7 +32,7 @@ void CsvAnalysisController::recompute()
 
 void CsvAnalysisController::startRecompute()
 {
-    if (!m_session.dataSet.has_value()) {
+    if (!m_session.csvData.has_value()) {
         CsvAnalysisEngine::AnalysisResult emptyResult{};
         emptyResult.usedSettings = m_settings;
         m_result = std::move(emptyResult);
@@ -43,10 +43,12 @@ void CsvAnalysisController::startRecompute()
     m_isBusy = true;
     emit busyChanged(true);
 
-    const auto dataSet = *m_session.dataSet;
     const auto settings = m_settings;
+    const auto& dataSet = m_session.csvData->dataSet;
 
-    m_recomputeWatcher->setFuture(QtConcurrent::run([dataSet, settings]() { return CsvAnalysisEngine::analyze(dataSet, settings); } ));
+    m_recomputeWatcher->setFuture(QtConcurrent::run([dataSet, settings]() {
+        return CsvAnalysisEngine::analyze(dataSet, settings);
+    }));
 }
 
 void CsvAnalysisController::handleRecomputeFinished()
@@ -82,12 +84,12 @@ bool CsvAnalysisController::tryUpdateTopAnomaliesOnly()
 bool CsvAnalysisController::requiresFullRecompute(const CsvAnalysisEngine::AnalysisSettings& previous,
                                                   const CsvAnalysisEngine::AnalysisSettings& current) noexcept
 {
-    return previous.sensor != current.sensor ||
+    return previous.filter.sensor != current.filter.sensor ||
            previous.useSensor != current.useSensor ||
            previous.useFrom != current.useFrom ||
            previous.useTo != current.useTo ||
-           previous.from != current.from ||
-           previous.to != current.to ||
+           previous.filter.from != current.filter.from ||
+           previous.filter.to != current.filter.to ||
            previous.anomalyMethod != current.anomalyMethod ||
            previous.anomalyThreshold != current.anomalyThreshold;
 }

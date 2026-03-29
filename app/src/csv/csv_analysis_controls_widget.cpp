@@ -270,14 +270,14 @@ void CsvAnalysisControlsWidget::populateSensorOptions(const SessionData& session
 {
     m_sensorComboBox->clear();
 
-    if (!session.dataSet.has_value()) {
+    if (!session.csvData.has_value()) {
         m_useSensorCheckBox->setEnabled(false);
         m_sensorComboBox->setEnabled(false);
         return;
     }
 
     std::set<QString> sensors;
-    for (const auto& sample : session.dataSet->samples()) {
+    for (const auto& sample : session.csvData->dataSet.samples()) {
         sensors.insert(QString::fromStdString(sample.sensor));
     }
 
@@ -292,7 +292,7 @@ void CsvAnalysisControlsWidget::populateSensorOptions(const SessionData& session
 
 void CsvAnalysisControlsWidget::initializeDateControls(const SessionData& session)
 {
-    if (!session.dataSet.has_value() || session.dataSet->empty()) {
+    if (!session.csvData.has_value() || session.csvData->dataSet.empty()) {
         m_useFromCheckBox->setEnabled(false);
         m_useToCheckBox->setEnabled(false);
         m_fromDateEdit->setEnabled(false);
@@ -302,7 +302,7 @@ void CsvAnalysisControlsWidget::initializeDateControls(const SessionData& sessio
         return;
     }
 
-    const auto& samples = session.dataSet->samples();
+    const auto& samples = session.csvData->dataSet.samples();
     if (samples.empty()) {
         m_useFromCheckBox->setEnabled(false);
         m_useToCheckBox->setEnabled(false);
@@ -356,20 +356,20 @@ CsvAnalysisEngine::AnalysisSettings CsvAnalysisControlsWidget::settings() const
 {
     CsvAnalysisEngine::AnalysisSettings s{};
 
-    s.sensor = m_sensorComboBox->currentText().trimmed().toStdString();
-    s.useSensor = m_useSensorCheckBox->isChecked() && !s.sensor.empty();
+    s.filter.sensor = m_sensorComboBox->currentText().trimmed().toStdString();
+    s.useSensor = m_useSensorCheckBox->isChecked() && s.filter.sensor;
 
     s.useFrom = m_useFromCheckBox->isChecked();
     s.useTo = m_useToCheckBox->isChecked();
 
     if (s.useFrom) {
         const QDateTime dt(m_fromDateEdit->date(), m_fromTimeEdit->time(), QTimeZone::UTC);
-        s.from = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
+        s.filter.from = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
     }
 
     if (s.useTo) {
         const QDateTime dt(m_toDateEdit->date(), m_toTimeEdit->time(), QTimeZone::UTC);
-        s.to = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
+        s.filter.to = std::chrono::sys_seconds{std::chrono::seconds{dt.toSecsSinceEpoch()}};
     }
 
     s.anomalyMethod = currentAnomalyMethod();
