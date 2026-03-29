@@ -1,15 +1,15 @@
 #include "pdv/csv/csv_analysis_results_panel.h"
 
-#include "pdt/csv/output.h"
-
 #include <QDateTime>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
-#include <QVBoxLayout>
 #include <QTimeZone>
+#include <QVBoxLayout>
+
+#include <pdt/csv/csv_output.h>
 
 namespace pdv {
 namespace {
@@ -200,16 +200,16 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
     m_statsTotalValueLabel->setText(QString::number(static_cast<qulonglong>(session.csvData->dataSet.size())));
     m_statsFilteredValueLabel->setText(QString::number(static_cast<qulonglong>(result.filteredDataSet.size())));
 
-    m_statsSensorValueLabel->setText( settings.useSensor ? QString::fromStdString(settings.sensor) : "All" );
+    m_statsSensorValueLabel->setText( settings.useSensor ? QString::fromStdString(settings.filter.sensor.value()) : "All" );
 
-    if (settings.useFrom && settings.from.has_value()) {
-        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.from->time_since_epoch()).count();
+    if (settings.useFrom && settings.filter.from.has_value()) {
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.filter.from->time_since_epoch()).count();
         m_statsFromValueLabel->setText(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), QTimeZone::UTC).toString("yyyy-MM-dd HH:mm:ss"));
     }
     else { m_statsFromValueLabel->setText("-"); }
 
-    if (settings.useTo && settings.to.has_value()) {
-        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.to->time_since_epoch()).count();
+    if (settings.useTo && settings.filter.to.has_value()) {
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(settings.filter.to->time_since_epoch()).count();
 
         m_statsToValueLabel->setText(
             QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), QTimeZone::UTC).toString("yyyy-MM-dd HH:mm:ss")
@@ -219,10 +219,10 @@ void CsvAnalysisResultsPanel::renderStatistics(const SessionData& session, const
 
     m_statsDetectedAnomaliesValueLabel->setText(QString::number(static_cast<qulonglong>(result.anomalySummary.all.size())));
 
-    m_statsMinValueLabel->setText(QString::number(result.minValue, 'f', 2));
-    m_statsMaxValueLabel->setText(QString::number(result.maxValue, 'f', 2));
-    m_statsMeanValueLabel->setText(QString::number(result.meanValue, 'f', 2));
-    m_statsStddevValueLabel->setText(QString::number(result.stddevValue, 'f', 2));
+    m_statsMinValueLabel->setText(QString::number(result.stats.min, 'f', 2));
+    m_statsMaxValueLabel->setText(QString::number(result.stats.max, 'f', 2));
+    m_statsMeanValueLabel->setText(QString::number(result.stats.mean, 'f', 2));
+    m_statsStddevValueLabel->setText(QString::number(result.stats.stddev, 'f', 2));
     m_statsAnomalyMethodValueLabel->setText(anomalyMethodToString(settings.anomalyMethod));
     m_statsAnomalyThresholdLabel->setText(anomalyThresholdLabelText(settings.anomalyMethod));
     m_statsAnomalyThresholdValueLabel->setText(QString::number(settings.anomalyThreshold, 'f', 2));

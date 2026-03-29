@@ -30,25 +30,17 @@ CsvAnalysisEngine::AnalysisResult CsvAnalysisEngine::analyze(const pdt::DataSet&
 bool CsvAnalysisEngine::hasInvalidTimeRange(const AnalysisSettings& settings)
 {
     return settings.useFrom && settings.useTo &&
-           settings.from.has_value() && settings.to.has_value() &&
-           *settings.from > *settings.to;
+           settings.filter.from.has_value() && settings.filter.to.has_value() &&
+           *settings.filter.from > *settings.filter.to;
 }
 
 pdt::FilterOptions CsvAnalysisEngine::toFilterOptions(const AnalysisSettings& settings)
 {
     pdt::FilterOptions filter{};
 
-    if (settings.useSensor && !settings.sensor.empty()) {
-        filter.sensor = settings.sensor;
-    }
-
-    if (settings.useFrom) {
-        filter.from = settings.from;
-    }
-
-    if (settings.useTo) {
-        filter.to = settings.to;
-    }
+    if (settings.useSensor && settings.filter.sensor) { filter.sensor = settings.filter.sensor; }
+    if (settings.useFrom)   { filter.from = settings.filter.from; }
+    if (settings.useTo)     { filter.to = settings.filter.to; }
 
     return filter;
 }
@@ -58,10 +50,10 @@ void CsvAnalysisEngine::computeBasicStats(const pdt::DataSet& dataSet, AnalysisR
     if (dataSet.empty()) { return; }
 
     const auto stats = dataSet.stats();
-    result.minValue = stats.min;
-    result.maxValue = stats.max;
-    result.meanValue = stats.mean;
-    result.stddevValue = stats.stddev;
+    result.stats.min =      stats.min;
+    result.stats.max =      stats.max;
+    result.stats.mean =     stats.mean;
+    result.stats.stddev =   stats.stddev;
 }
 
 } // namespace pdv

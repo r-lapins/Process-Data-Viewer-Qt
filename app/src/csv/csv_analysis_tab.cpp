@@ -1,25 +1,26 @@
 #include "pdv/csv/csv_analysis_tab.h"
+
 #include "pdv/csv/csv_analysis_plot_widget.h"
 #include "pdv/csv/csv_analysis_results_panel.h"
 
-#include <pdt/csv/output.h>
+#include <QDateTime>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QFormLayout>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QHeaderView>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QMessageBox>
+#include <QPixmap>
+#include <QTableView>
+#include <QVBoxLayout>
+
+#include <pdt/csv/csv_output.h>
 
 #include <fstream>
 #include <numeric>
-
-#include <QGroupBox>
-#include <QMessageBox>
-#include <QFileDialog>
-#include <QDateTime>
-#include <QFileInfo>
-#include <QLabel>
-#include <QTableView>
-#include <QHeaderView>
-#include <QFormLayout>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGridLayout>
-#include <QPixmap>
 
 namespace pdv {
 
@@ -201,9 +202,9 @@ void CsvAnalysisTab::exportJsonReport()
     ctx.total = m_session.csvData->dataSet.size();
     ctx.filtered = result.filteredDataSet.size();
 
-    if (!exportPerSensor && settings.useSensor && !settings.sensor.empty()) { ctx.sensor = settings.sensor; }
-    if (settings.useFrom && settings.from.has_value()) { ctx.from = settings.from; }
-    if (settings.useTo && settings.to.has_value()) { ctx.to = settings.to; }
+    if (!exportPerSensor && settings.useSensor && settings.filter.sensor)   { ctx.filter.sensor = settings.filter.sensor; }
+    if (settings.useFrom && settings.filter.from.has_value())               { ctx.filter.from = settings.filter.from; }
+    if (settings.useTo && settings.filter.to.has_value())                   { ctx.filter.to = settings.filter.to; }
 
     ctx.anomaly_threshold = settings.anomalyThreshold;
     ctx.anomaly_method = settings.anomalyMethod;
