@@ -89,7 +89,6 @@ bool WavAnalysisController::requiresFullRecompute(
     const WavAnalysisEngine::AnalysisSettings& current) noexcept
 {
     return previous.algorithm != current.algorithm ||
-           previous.useWindow != current.useWindow ||
            previous.window != current.window ||
            previous.peakMode != current.peakMode ||
            previous.threshold != current.threshold ||

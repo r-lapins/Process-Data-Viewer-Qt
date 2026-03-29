@@ -153,21 +153,16 @@ void WavAnalysisResultsPanel::renderStatistics(const SessionData& session, const
     m_statsTotalSamplesValueLabel->setText(QString::number(static_cast<qulonglong>(wav.samples.size())));
     m_statsUsedFromValueLabel->setText(QString::number(static_cast<qulonglong>(settings.from)));
     m_statsWindowSizeValueLabel->setText(QString::number(static_cast<qulonglong>(result.rawSegment.size())));
+    m_statsWindowValueLabel->setText(toString(settings.window));
     m_statsAlgorithmValueLabel->setText(toString(settings.algorithm));
     m_statsThresholdValueLabel->setText(QString::number(settings.threshold, 'g', 10));
     m_statsPeakModeValueLabel->setText(toString(settings.peakMode));
     m_statsDetectedPeaksValueLabel->setText(QString::number(static_cast<qulonglong>(result.allPeaks.size())));
 
-    m_statsMinValueLabel->setText(QString::number(result.minValue, 'f', 3));
-    m_statsMaxValueLabel->setText(QString::number(result.maxValue, 'f', 3));
-    m_statsMeanValueLabel->setText(QString::number(result.meanValue, 'e', 1));
-    m_statsStddevValueLabel->setText(QString::number(result.stddevValue, 'f', 3));
-
-    if (settings.useWindow) {
-        m_statsWindowValueLabel->setText(toString(settings.window));
-    } else {
-        m_statsWindowValueLabel->setText("None");
-    }
+    m_statsMinValueLabel->setText(QString::number(result.stats.min, 'f', 3));
+    m_statsMaxValueLabel->setText(QString::number(result.stats.max, 'f', 3));
+    m_statsMeanValueLabel->setText(QString::number(result.stats.mean, 'e', 1));
+    m_statsStddevValueLabel->setText(QString::number(result.stats.stddev, 'f', 3));
 }
 
 void WavAnalysisResultsPanel::clearAlerts()
@@ -184,13 +179,16 @@ void WavAnalysisResultsPanel::renderAlerts(const SessionData& session, const Wav
         return;
     }
 
+    QFont font("Monospace");
+    font.setStyleHint(QFont::TypeWriter);
+    m_alertsListWidget->setFont(font);
+
+    m_alertsListWidget->clear();
+
     if (result.processedSegment.empty()) {
-        m_alertsListWidget->clear();
         m_alertsListWidget->addItem("Selected segment is empty");
         return;
     }
-
-    m_alertsListWidget->clear();
 
     if (result.dominantPeaks.empty()) {
         m_alertsListWidget->addItem("No dominant spectral peaks detected");
@@ -204,16 +202,19 @@ void WavAnalysisResultsPanel::renderAlerts(const SessionData& session, const Wav
     );
 
     for (std::size_t i = 0; i < result.dominantPeaks.size(); ++i) {
-        m_alertsListWidget->addItem(QString::fromStdString(pdt::format_peak_line(result.dominantPeaks[i], i + 1)));
+        m_alertsListWidget->addItem(QString::fromStdString(
+            pdt::format_peak_line(result.dominantPeaks[i], i + 1)
+            ));
     }
 }
 
-QString WavAnalysisResultsPanel::toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const
+QString WavAnalysisResultsPanel::toString(pdt::SpectrumAlgorithm algorithm) const
 {
-    using enum WavAnalysisEngine::SpectrumAlgorithm;
+    using enum pdt::SpectrumAlgorithm;
     switch (algorithm) {
-    case Dft: return "DFT";
-    case Fft: return "FFT";
+    case Dft:  return "DFT";
+    case Fft:  return "FFT";
+    case Auto: return "Auto";
     }
     return "-";
 }
@@ -222,8 +223,10 @@ QString WavAnalysisResultsPanel::toString(pdt::WindowType window) const
 {
     using enum pdt::WindowType;
     switch (window) {
-    case Hann: return "Hann";
+    case Hann:    return "Hann";
     case Hamming: return "Hamming";
+    case None:    return "None";
+        break;
     }
     return "-";
 }

@@ -16,13 +16,14 @@
 namespace pdv {
 namespace {
 
-QString toDisplayString(WavAnalysisEngine::SpectrumAlgorithm algorithm)
+QString toDisplayString(pdt::SpectrumAlgorithm algorithm)
 {
-    using enum WavAnalysisEngine::SpectrumAlgorithm;
+    using enum pdt::SpectrumAlgorithm;
 
     switch (algorithm) {
-    case Dft: return "DFT";
-    case Fft: return "FFT";
+    case Dft:   return "DFT";
+    case Fft:   return "FFT";
+    case Auto:  return "Auto";
     }
 
     return "-";
@@ -35,6 +36,8 @@ QString toDisplayString(pdt::WindowType window)
     switch (window) {
     case Hann:      return "Hann";
     case Hamming:   return "Hamming";
+    case None:      return "None";
+        break;
     }
 
     return "-";
@@ -72,10 +75,10 @@ pdt::SpectrumReport buildSpectrumReport(const SessionData& session, const WavAna
     const auto& settings = result.usedSettings;
     report.meta.from = settings.from;
     report.meta.windowSize = result.rawSegment.size();
-    report.meta.window = settings.useWindow ? toDisplayString(settings.window).toStdString() : "none";
-    report.meta.algorithm = toDisplayString(settings.algorithm).toStdString();
+    report.meta.window = settings.window;
+    report.meta.algorithm = settings.algorithm;
     report.meta.threshold = settings.threshold;
-    report.meta.peak_mode = toDisplayString(settings.peakMode).toStdString();
+    report.meta.peak_mode = settings.peakMode;
     report.meta.top = settings.topPeaks;
 
     return report;
@@ -108,7 +111,7 @@ void WavAnalysisTab::createUi()
     m_controlsWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
 
     m_resultsPanel = new WavAnalysisResultsPanel(this);
-    m_resultsPanel->setFixedWidth(600);
+    m_resultsPanel->setFixedWidth(725);
 
     topLayout->addSpacing(20);
     topLayout->addWidget(m_controlsWidget, 0, Qt::AlignTop);
@@ -142,10 +145,6 @@ void WavAnalysisTab::createUi()
 
 void WavAnalysisTab::connectControls()
 {
-    if (m_controlsWidget == nullptr) {
-        return;
-    }
-
     connect(m_controlsWidget, &WavAnalysisControlsWidget::analysisRequested, this, &WavAnalysisTab::recomputeAnalysis);
 
     connect(m_controlsWidget, &WavAnalysisControlsWidget::signalPlotToggled, this, [this]() { updatePlotVisibility(); });
@@ -168,20 +167,13 @@ void WavAnalysisTab::connectControls()
 
 void WavAnalysisTab::recomputeAnalysis()
 {
-    if (m_controller == nullptr || m_controlsWidget == nullptr) {
-        return;
-    }
-
     m_controller->setSettings(m_controlsWidget->settings());
     m_controller->recompute();
 }
 
 void WavAnalysisTab::renderAnalysis(const WavAnalysisEngine::AnalysisResult& result)
 {
-    if (m_resultsPanel != nullptr) {
-        m_resultsPanel->setResults(m_session, result);
-    }
-
+    m_resultsPanel->setResults(m_session, result);
     renderSignalPlot(result);
     renderSpectrumPlot(result);
 }
@@ -200,10 +192,6 @@ QWidget* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
 
 void WavAnalysisTab::renderSignalPlot(const WavAnalysisEngine::AnalysisResult& result)
 {
-    if (m_signalChartWidget == nullptr) {
-        return;
-    }
-
     const QString fromInfo = QString::number(static_cast<qulonglong>(result.usedSettings.from));
     const QFileInfo fileInfo(m_session.filePath);
 
@@ -212,10 +200,6 @@ void WavAnalysisTab::renderSignalPlot(const WavAnalysisEngine::AnalysisResult& r
 
 void WavAnalysisTab::renderSpectrumPlot(const WavAnalysisEngine::AnalysisResult& result)
 {
-    if (m_spectrumChartWidget == nullptr) {
-        return;
-    }
-
     const QFileInfo fileInfo(m_session.filePath);
     m_spectrumChartWidget->updatePlot(result.spectrum, QString("Spectrum plot - %1").arg(fileInfo.fileName()));
 }
@@ -266,15 +250,11 @@ void WavAnalysisTab::updatePlotVisibility()
     const bool signalVisible = (m_controlsWidget != nullptr && m_controlsWidget->isSignalPlotEnabled());
     const bool spectrumVisible = (m_controlsWidget != nullptr && m_controlsWidget->isSpectrumPlotEnabled());
 
-    if (m_signalPlotContainer != nullptr) {
-        m_signalPlotContainer->setVisible(signalVisible);
-        m_signalPlotContainer->updateGeometry();
-    }
+    m_signalPlotContainer->setVisible(signalVisible);
+    m_signalPlotContainer->updateGeometry();
 
-    if (m_spectrumPlotContainer != nullptr) {
-        m_spectrumPlotContainer->setVisible(spectrumVisible);
-        m_spectrumPlotContainer->updateGeometry();
-    }
+    m_spectrumPlotContainer->setVisible(spectrumVisible);
+    m_spectrumPlotContainer->updateGeometry();
 
     updateGeometry();
     emit preferredSizeChanged();

@@ -45,7 +45,7 @@ private:
     void connectControls();
 
     [[nodiscard]] std::size_t selectedWindowSize() const;
-    [[nodiscard]] WavAnalysisEngine::SpectrumAlgorithm selectedAlgorithm() const noexcept;
+    [[nodiscard]] pdt::SpectrumAlgorithm selectedAlgorithm() const noexcept;
     [[nodiscard]] bool useWindow() const noexcept;
 
     void triggerAutoAnalysis();

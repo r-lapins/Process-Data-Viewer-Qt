@@ -92,8 +92,8 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_windowComboBox->addItem("Hamming", static_cast<int>(pdt::WindowType::Hamming));
     m_windowComboBox->addItem("None", -1);
 
-    m_algorithmComboBox->addItem("FFT", static_cast<int>(WavAnalysisEngine::SpectrumAlgorithm::Fft));
-    m_algorithmComboBox->addItem("DFT", static_cast<int>(WavAnalysisEngine::SpectrumAlgorithm::Dft));
+    m_algorithmComboBox->addItem("FFT", static_cast<int>(pdt::SpectrumAlgorithm::Fft));
+    m_algorithmComboBox->addItem("DFT", static_cast<int>(pdt::SpectrumAlgorithm::Dft));
 
     m_thresholdSpinBox->setRange(0.0, 1.0);
     m_thresholdSpinBox->setSingleStep(0.05);
@@ -133,6 +133,8 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
 
     m_exportSignalPlotButton = new QPushButton("Signal", actionsGroup);
     m_exportSpectrumPlotButton = new QPushButton("Spectrum", actionsGroup);
+    m_exportSignalPlotButton->setEnabled(false);
+    m_exportSpectrumPlotButton->setEnabled(false);
 
     m_showSignalButton->setCheckable(true);
     m_showSignalButton->setChecked(false);
@@ -167,7 +169,6 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     auto* lab_1 = new QLabel("Show plot:", actionsGroup);
     auto* lab_2 = new QLabel("Export plot to PNG:", actionsGroup);
     auto* lab_3 = new QLabel("Output:", actionsGroup);
-    auto* lab_0 = new QLabel(" ", actionsGroup);
 
     // composing
     actionsLayout->addWidget(lab_1, 2, 0, 1, 2);
@@ -190,6 +191,9 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
 
 void WavAnalysisControlsWidget::connectControls()
 {
+    connect(m_showSignalButton, &QPushButton::toggled, m_exportSignalPlotButton, &QWidget::setEnabled);
+    connect(m_showSpectrumButton, &QPushButton::toggled, m_exportSpectrumPlotButton, &QWidget::setEnabled);
+
     connect(m_autoUpdateCheckBox, &QCheckBox::toggled, this, [this](bool checked) { m_recomputeButton->setEnabled(!checked); });
 
     connect(m_recomputeButton, &QPushButton::clicked, this, &WavAnalysisControlsWidget::analysisRequested);
@@ -237,9 +241,8 @@ WavAnalysisEngine::AnalysisSettings WavAnalysisControlsWidget::settings() const
     WavAnalysisEngine::AnalysisSettings s{};
 
     s.algorithm = selectedAlgorithm();
-    s.useWindow = useWindow();
 
-    if (s.useWindow) {
+    if (s.window != pdt::WindowType::None) {
         s.window = static_cast<pdt::WindowType>(m_windowComboBox->currentData().toInt());
     }
 
@@ -287,18 +290,18 @@ void WavAnalysisControlsWidget::setBusy(bool busy)
 
 std::size_t WavAnalysisControlsWidget::selectedWindowSize() const
 {
-    const auto selected = static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    const auto selected = static_cast<pdt::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
-    if (selected == WavAnalysisEngine::SpectrumAlgorithm::Fft) {
+    if (selected == pdt::SpectrumAlgorithm::Fft) {
         return static_cast<std::size_t>(m_windowSizeComboBox->currentData().toULongLong());
     }
 
     return static_cast<std::size_t>(m_windowSizeSpinBox->value());
 }
 
-WavAnalysisEngine::SpectrumAlgorithm WavAnalysisControlsWidget::selectedAlgorithm() const noexcept
+pdt::SpectrumAlgorithm WavAnalysisControlsWidget::selectedAlgorithm() const noexcept
 {
-    return static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    return static_cast<pdt::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 }
 
 bool WavAnalysisControlsWidget::useWindow() const noexcept
@@ -315,9 +318,9 @@ void WavAnalysisControlsWidget::triggerAutoAnalysis()
 
 void WavAnalysisControlsWidget::updateWindowSizeInputMode()
 {
-    const auto selected = static_cast<WavAnalysisEngine::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
+    const auto selected = static_cast<pdt::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
-    if (selected == WavAnalysisEngine::SpectrumAlgorithm::Fft) {
+    if (selected == pdt::SpectrumAlgorithm::Fft) {
         m_windowSizeInputStack->setCurrentWidget(m_windowSizeComboBox);
     } else {
         m_windowSizeInputStack->setCurrentWidget(m_windowSizeSpinBox);

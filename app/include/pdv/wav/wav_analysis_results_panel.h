@@ -5,7 +5,7 @@
 #include "pdv/core/session_data.h"
 #include "pdv/wav/wav_analysis_engine.h"
 
-#include <pdt/wav/spectrum_output.h>
+#include <pdt/wav/wav_output.h>
 
 class QLabel;
 class QListWidget;
@@ -32,7 +32,7 @@ private:
     void clearAlerts();
     void renderAlerts(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result);
 
-    QString toString(WavAnalysisEngine::SpectrumAlgorithm algorithm) const;
+    QString toString(pdt::SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;
     QString toString(pdt::PeakDetectionMode mode) const;
 

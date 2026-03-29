@@ -3,6 +3,8 @@
 #include <pdt/wav/window.h>
 #include <pdt/wav/peak_detection.h>
 #include <pdt/wav/wav_reader.h>
+#include <pdt/wav/spectrum.h>
+#include <pdt/csv/types.h>
 
 #include <vector>
 #include <span>
@@ -13,33 +15,25 @@ namespace pdv {
 class WavAnalysisEngine
 {
 public:
-    enum class SpectrumAlgorithm { Dft, Fft };
 
     struct AnalysisSettings {
-        SpectrumAlgorithm algorithm{SpectrumAlgorithm::Fft};
-        bool useWindow{true};
-        pdt::WindowType window{pdt::WindowType::Hann};
         pdt::PeakDetectionMode peakMode{pdt::PeakDetectionMode::LocalMaxima};
-        double threshold{0.20};
+        pdt::SpectrumAlgorithm algorithm{pdt::SpectrumAlgorithm::Fft};
+        pdt::WindowType window{pdt::WindowType::Hann};
         std::size_t topPeaks{20};
         std::size_t from{0};
         std::size_t windowSize{1024};
+        double threshold{0.20};
     };
 
     struct AnalysisResult {
-        AnalysisSettings usedSettings;
-
         std::vector<double> rawSegment;
-        pdt::Spectrum spectrum;
-
         std::vector<double> processedSegment;
         std::vector<pdt::Peak> allPeaks;
         std::vector<pdt::Peak> dominantPeaks;
-
-        double minValue{0.0};
-        double maxValue{0.0};
-        double meanValue{0.0};
-        double stddevValue{0.0};
+        AnalysisSettings usedSettings;
+        pdt::Spectrum spectrum;
+        pdt::Stats stats{};
     };
 
     [[nodiscard]] static AnalysisResult analyze(const pdt::WavData& wav, const AnalysisSettings& settings);
