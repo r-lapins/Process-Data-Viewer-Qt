@@ -27,6 +27,4 @@ protected:
     SessionData m_session;
 };
 
-
-
 } // namespace pdv

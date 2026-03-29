@@ -36,6 +36,7 @@ private:
 
     void connectControls();
     void recomputeAnalysis();
+
     void exportJsonReport();
     void exportPlotPng();
     void exportMarkedCsv();

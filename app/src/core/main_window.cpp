@@ -76,12 +76,9 @@ void MainWindow::createCentralWorkspace()
 
 void MainWindow::openFile()
 {
-    const QString filePath = QFileDialog::getOpenFileName(
-        this,
-        "Open file",
-        QString(),
-        "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
-        );
+    const QString filePath = QFileDialog::getOpenFileName(this, "Open file", QString(),
+                                                          "Supported files (*.csv *.wav);;CSV files (*.csv);;WAV files (*.wav);;All files (*)"
+                                                          );
 
     if (filePath.isEmpty()) {
         statusBar()->showMessage("Open file canceled", 2000);
@@ -112,9 +109,7 @@ void MainWindow::openFileFromDataFolder()
 
 void MainWindow::loadFileAsync(const QString &filePath)
 {
-    if (m_isLoading) {
-        return;
-    }
+    if (m_isLoading) { return; }
 
     setLoadingUiState(true);
 
@@ -199,13 +194,9 @@ void MainWindow::updateWindowTitle()
 
 void MainWindow::updateLayoutGeometry()
 {
-    if (centralWidget() == nullptr) {
-        return;
-    }
+    if (centralWidget() == nullptr) { return; }
 
-    if (m_tabWidget != nullptr) {
-        m_tabWidget->updateGeometry();
-    }
+    if (m_tabWidget != nullptr) { m_tabWidget->updateGeometry(); }
 
     if (auto* cwLayout = centralWidget()->layout(); cwLayout != nullptr) {
         cwLayout->activate();
@@ -218,9 +209,7 @@ void MainWindow::updateLayoutGeometry()
 
 void MainWindow::adjustWindowToCurrentTab()
 {
-    if (isMaximized() || isFullScreen()) {
-        return;
-    }
+    if (isMaximized() || isFullScreen()) { return; }
 
     updateLayoutGeometry();
 

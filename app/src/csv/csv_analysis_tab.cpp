@@ -53,11 +53,11 @@ void CsvAnalysisTab::createUi()
     m_controlsWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     m_resultsPanel = new CsvAnalysisResultsPanel(topWidget);
-    m_resultsPanel->setFixedWidth(750);
+    m_resultsPanel->setFixedWidth(925);
 
     auto* dataPanel = createDataPanel(topWidget);
     dataPanel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    dataPanel->setMinimumWidth(400);
+    dataPanel->setMinimumWidth(375);
 
     auto* leftColumnWidget = new QWidget(topWidget);
     auto* leftColumnLayout = new QVBoxLayout(leftColumnWidget);
@@ -291,9 +291,8 @@ void CsvAnalysisTab::exportMarkedCsv()
 
 void CsvAnalysisTab::updatePlotVisibility()
 {
-    const bool visible = (m_controlsWidget != nullptr && m_controlsWidget->isPlotEnabled());
-
-    if (m_plotContainer != nullptr) { m_plotContainer->setVisible(visible); }
+    const bool visible = m_controlsWidget->isPlotEnabled();
+    m_plotContainer->setVisible(visible);
 
     updateGeometry();
     emit preferredSizeChanged();
@@ -301,10 +300,6 @@ void CsvAnalysisTab::updatePlotVisibility()
 
 void CsvAnalysisTab::renderPlot(const CsvAnalysisEngine::AnalysisResult& result)
 {
-    if (m_csvAnalysisPlotWidget == nullptr) {
-        return;
-    }
-
     if (result.invalidTimeRange || result.filteredDataSet.empty()) {
         m_csvAnalysisPlotWidget->resetPlot();
         return;
@@ -336,19 +331,13 @@ void CsvAnalysisTab::renderPlot(const CsvAnalysisEngine::AnalysisResult& result)
     m_csvAnalysisPlotWidget->updatePlotWithMarkers(xValues,
                                                    yValues,
                                                    markerXValues,
-                                                   result.meanValue,
+                                                   result.stats.mean,
                                                    QString("CSV plot - %1").arg(fileInfo.fileName())
         );
 }
 
 void CsvAnalysisTab::renderData(const CsvAnalysisEngine::AnalysisResult& result)
 {
-    if (m_csvSamplesModel == nullptr ||
-        m_data.placeholderLabel == nullptr ||
-        m_data.tableView == nullptr) {
-        return;
-    }
-
     if (result.invalidTimeRange) {
         m_csvSamplesModel->clear();
         m_data.placeholderLabel->setText("Invalid time range: From is later than To");
@@ -377,8 +366,6 @@ void CsvAnalysisTab::renderData(const CsvAnalysisEngine::AnalysisResult& result)
 
 void CsvAnalysisTab::renderResults(const CsvAnalysisEngine::AnalysisResult& result)
 {
-    if (m_resultsPanel == nullptr || m_controlsWidget == nullptr) { return; }
-
     m_resultsPanel->setResults(m_session, result, m_controlsWidget->isShowSkippedRowsEnabled());
 }
 

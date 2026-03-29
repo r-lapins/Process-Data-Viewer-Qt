@@ -249,8 +249,16 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
         return;
     }
 
+    QFont font("Monospace");
+    font.setStyleHint(QFont::TypeWriter);
+    m_alertsListWidget->setFont(font);
+
     m_alertsListWidget->clear();
-    m_alertsListWidget->addItem("Detected anomalies:");
+    m_alertsListWidget->addItem(
+        QString("Detected anomalies: %1 | showing top %2")
+            .arg(static_cast<qulonglong>(result.anomalySummary.all.size()))
+            .arg(static_cast<qulonglong>(result.anomalySummary.top.size()))
+        );
 
     if (result.filteredDataSet.empty() || result.anomalySummary.top.empty()) {
         m_alertsListWidget->addItem("No anomalies detected");
@@ -270,10 +278,9 @@ void CsvAnalysisResultsPanel::renderAlerts(const SessionData& session, const Csv
         m_alertsListWidget->addItem("------------ Skipped rows ------------");
 
         for (const auto& row : session.csvData->skipped_rows) {
-            m_alertsListWidget->addItem(
-                QString("line %1: %2")
-                    .arg(row.line_number)
-                    .arg(QString::fromStdString(row.text))
+            m_alertsListWidget->addItem(QString("line %1: %2")
+                                            .arg(row.line_number)
+                                            .arg(QString::fromStdString(row.text))
                 );
         }
     }

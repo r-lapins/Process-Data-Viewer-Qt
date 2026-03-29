@@ -5,7 +5,7 @@
 
 #include <pdt/wav/window.h>
 #include <pdt/wav/peak_detection.h>
-#include <pdt/wav/spectrum_output.h>
+#include <pdt/wav/wav_output.h>
 
 class QLabel;
 class QListWidget;
