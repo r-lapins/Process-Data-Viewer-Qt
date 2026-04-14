@@ -1,0 +1,72 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PDT_ENABLE_CUDA": "OFF",
+        "PDT_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "debug-cuda",
+      "displayName": "Debug (CUDA)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug-cuda",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PDT_ENABLE_CUDA": "ON",
+        "PDT_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PDT_ENABLE_CUDA": "OFF",
+        "PDT_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "release-cuda",
+      "displayName": "Release (CUDA)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release-cuda",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PDT_ENABLE_CUDA": "ON",
+        "PDT_ENABLE_SANITIZERS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "debug-cuda",
+      "configurePreset": "debug-cuda"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "release-cuda",
+      "configurePreset": "release-cuda"
+    }
+  ]
+}
