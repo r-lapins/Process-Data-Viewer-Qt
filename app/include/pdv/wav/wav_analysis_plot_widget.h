@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QtCharts/QChartView>
-#include "pdt/wav/spectrum.h"
+#include "pdt/dsp/spectrum.h"
 
 #include <span>
 

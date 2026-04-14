@@ -3,6 +3,8 @@
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <cassert>
+#include <QString>
+#include <exception>
 
 namespace pdv {
 
@@ -10,9 +12,14 @@ WavAnalysisController::WavAnalysisController(const SessionData& session, QObject
     : QObject(parent)
     , m_session(session)
 {
-    m_recomputeWatcher = new QFutureWatcher<WavAnalysisEngine::AnalysisResult>(this);
+    if (m_session.wavData.has_value()) {
+        m_analysisSession = std::make_unique<pdt::WavAnalysisSession>(m_session.wavData->samples,
+                                                                      static_cast<double>(m_session.wavData->sample_rate));
+    }
 
-    connect(m_recomputeWatcher, &QFutureWatcher<WavAnalysisEngine::AnalysisResult>::finished,
+    m_recomputeWatcher = new QFutureWatcher<pdt::WavAnalysisResult>(this);
+
+    connect(m_recomputeWatcher, &QFutureWatcher<pdt::WavAnalysisResult>::finished,
             this, &WavAnalysisController::handleRecomputeFinished);
 }
 
@@ -23,19 +30,22 @@ void WavAnalysisController::recompute()
         return;
     }
 
-    if (tryUpdateDominantPeaksOnly()) {
-        emit resultChanged(*m_result);
-        return;
-    }
-
     startRecompute();
 }
 
 void WavAnalysisController::startRecompute()
 {
-    if (!m_session.wavData.has_value()) {
-        WavAnalysisEngine::AnalysisResult emptyResult{};
-        emptyResult.usedSettings = m_settings;
+    if (!m_analysisSession) {
+        pdt::WavAnalysisResult emptyResult{};
+        emptyResult.used_settings = pdt::WavAnalysisSettingsCache{.sample_rate = 0.0,
+                                                                  .algorithm = m_settings.algorithm,
+                                                                  .peak_mode = m_settings.peak_mode,
+                                                                  .window = m_settings.window,
+                                                                  .top_peaks = m_settings.top_peaks,
+                                                                  .from = m_settings.from,
+                                                                  .window_size = m_settings.window_size,
+                                                                  .threshold = m_settings.threshold};
+
         m_result = std::move(emptyResult);
         emit resultChanged(*m_result);
         return;
@@ -44,15 +54,30 @@ void WavAnalysisController::startRecompute()
     m_isBusy = true;
     emit busyChanged(true);
 
-    const auto wavData = *m_session.wavData;
+    auto* analysisSession = m_analysisSession.get();
     const auto settings = m_settings;
 
-    m_recomputeWatcher->setFuture(QtConcurrent::run([wavData, settings]() { return WavAnalysisEngine::analyze(wavData, settings); } ));
+    m_recomputeWatcher->setFuture(QtConcurrent::run([analysisSession, settings]() {
+        const auto& cached = analysisSession->analyze(settings);
+        return pdt::WavAnalysisResult{cached};
+    }));
 }
 
 void WavAnalysisController::handleRecomputeFinished()
 {
-    m_result = m_recomputeWatcher->result();
+    try {
+        m_result = m_recomputeWatcher->result();
+    } catch (const std::exception& ex) {
+        m_isBusy = false;
+        emit busyChanged(false);
+        emit analysisFailed(QString::fromUtf8(ex.what()));
+        return;
+    } catch (...) {
+        m_isBusy = false;
+        emit busyChanged(false);
+        emit analysisFailed("Unknown analysis error");
+        return;
+    }
 
     m_isBusy = false;
     emit busyChanged(false);
@@ -65,43 +90,12 @@ void WavAnalysisController::handleRecomputeFinished()
     }
 }
 
-bool WavAnalysisController::tryUpdateDominantPeaksOnly()
-{
-    if (!m_result.has_value()) {
-        return false;
-    }
-
-    const auto& previousSettings = m_result->usedSettings;
-    const auto& currentSettings = m_settings;
-
-    if (requiresFullRecompute(previousSettings, currentSettings)) {
-        return false;
-    }
-
-    m_result->usedSettings.topPeaks = currentSettings.topPeaks;
-    m_result->dominantPeaks = pdt::select_dominant_peaks(m_result->allPeaks, currentSettings.topPeaks);
-
-    return true;
-}
-
-bool WavAnalysisController::requiresFullRecompute(
-    const WavAnalysisEngine::AnalysisSettings& previous,
-    const WavAnalysisEngine::AnalysisSettings& current) noexcept
-{
-    return previous.algorithm != current.algorithm ||
-           previous.window != current.window ||
-           previous.peakMode != current.peakMode ||
-           previous.threshold != current.threshold ||
-           previous.from != current.from ||
-           previous.windowSize != current.windowSize;
-}
-
-void WavAnalysisController::setSettings(const WavAnalysisEngine::AnalysisSettings& settings)
+void WavAnalysisController::setSettings(const pdt::WavAnalysisSettingsCache& settings)
 {
     m_settings = settings;
 }
 
-const WavAnalysisEngine::AnalysisSettings& WavAnalysisController::settings() const noexcept
+const pdt::WavAnalysisSettingsCache& WavAnalysisController::settings() const noexcept
 {
     return m_settings;
 }
@@ -116,7 +110,7 @@ bool WavAnalysisController::hasResult() const noexcept
     return m_result.has_value();
 }
 
-const WavAnalysisEngine::AnalysisResult& WavAnalysisController::result() const
+const pdt::WavAnalysisResult& WavAnalysisController::result() const
 {
     assert(m_result.has_value());
     return *m_result;

@@ -2,11 +2,14 @@
 
 #include <QObject>
 #include <QFutureWatcher>
+#include <QString>
 
 #include "pdv/core/session_data.h"
-#include "pdv/wav/wav_analysis_engine.h"
+
+#include "pdt/pipeline/wav_analysis_session.h"
 
 #include <optional>
+#include <memory>
 
 namespace pdv {
 
@@ -19,34 +22,31 @@ public:
 
     void recompute();
 
-    void setSettings(const WavAnalysisEngine::AnalysisSettings& settings);
-    [[nodiscard]] const WavAnalysisEngine::AnalysisSettings& settings() const noexcept;
+    void setSettings(const pdt::WavAnalysisSettingsCache& settings);
+    [[nodiscard]] const pdt::WavAnalysisSettingsCache& settings() const noexcept;
 
     [[nodiscard]] bool isBusy() const noexcept;
     [[nodiscard]] bool hasResult() const noexcept;
-    [[nodiscard]] const WavAnalysisEngine::AnalysisResult& result() const;
+    [[nodiscard]] const pdt::WavAnalysisResult& result() const;
 
     [[nodiscard]] const SessionData& session() const noexcept;
 
 signals:
-    void resultChanged(const pdv::WavAnalysisEngine::AnalysisResult& result);
+    void resultChanged(const pdt::WavAnalysisResult& result);
     void busyChanged(bool busy);
+    void analysisFailed(const QString& message);
 
 private:
     void startRecompute();
     void handleRecomputeFinished();
 
-    bool tryUpdateDominantPeaksOnly();
-
-    [[nodiscard]] static bool requiresFullRecompute(
-        const WavAnalysisEngine::AnalysisSettings& previous,
-        const WavAnalysisEngine::AnalysisSettings& current) noexcept;
-
     const SessionData& m_session;
-    WavAnalysisEngine::AnalysisSettings m_settings{};
-    std::optional<WavAnalysisEngine::AnalysisResult> m_result;
+    pdt::WavAnalysisSettingsCache m_settings{};
 
-    QFutureWatcher<WavAnalysisEngine::AnalysisResult>* m_recomputeWatcher = nullptr;
+    std::optional<pdt::WavAnalysisResult> m_result;
+    std::unique_ptr<pdt::WavAnalysisSession> m_analysisSession;
+
+    QFutureWatcher<pdt::WavAnalysisResult>* m_recomputeWatcher = nullptr;
     bool m_isBusy = false;
     bool m_hasPendingRecompute = false;
 };

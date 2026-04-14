@@ -2,7 +2,7 @@
 
 #include <QWidget>
 
-#include "pdv/wav/wav_analysis_engine.h"
+#include "pdt/pipeline/wav_analysis_service.h"
 
 class QCheckBox;
 class QComboBox;
@@ -22,7 +22,7 @@ class WavAnalysisControlsWidget : public QWidget
 public:
     explicit WavAnalysisControlsWidget(const SessionData& session, QWidget* parent = nullptr);
 
-    [[nodiscard]] WavAnalysisEngine::AnalysisSettings settings() const;
+    [[nodiscard]] pdt::WavAnalysisSettingsCache settings() const;
     [[nodiscard]] bool isAutoUpdateEnabled() const noexcept;
     [[nodiscard]] bool isSignalPlotEnabled() const noexcept;
     [[nodiscard]] bool isSpectrumPlotEnabled() const noexcept;
@@ -75,6 +75,8 @@ private:
 
     QPushButton* m_exportSpectrumCsvButton = nullptr;
     QPushButton* m_exportSpectrumReportButton = nullptr;
+
+    QCheckBox* m_showAdvancedSizesCheckBox = nullptr;
 
     const SessionData* m_session = nullptr;
 };

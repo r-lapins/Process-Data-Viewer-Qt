@@ -3,9 +3,8 @@
 #include <QWidget>
 
 #include "pdv/core/session_data.h"
-#include "pdv/wav/wav_analysis_engine.h"
 
-#include <pdt/wav/wav_output.h>
+#include <pdt/pipeline/wav_analysis_service.h>
 
 class QLabel;
 class QListWidget;
@@ -20,17 +19,17 @@ public:
     explicit WavAnalysisResultsPanel(QWidget* parent = nullptr);
 
     void clear();
-    void setResults(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result);
+    void setResults(const SessionData& session, const pdt::WavAnalysisResult& result);
 
 private:
     QWidget* createStatisticsPanel(QWidget* parent);
     QWidget* createAlertsPanel(QWidget* parent);
 
     void clearStatistics();
-    void renderStatistics(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result);
+    void renderStatistics(const SessionData& session, const pdt::WavAnalysisResult& result);
 
     void clearAlerts();
-    void renderAlerts(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result);
+    void renderAlerts(const SessionData& session, const pdt::WavAnalysisResult& result);
 
     QString toString(pdt::SpectrumAlgorithm algorithm) const;
     QString toString(pdt::WindowType window) const;
@@ -47,10 +46,7 @@ private:
     QLabel* m_statsThresholdValueLabel = nullptr;
     QLabel* m_statsPeakModeValueLabel = nullptr;
     QLabel* m_statsDetectedPeaksValueLabel = nullptr;
-    QLabel* m_statsMinValueLabel = nullptr;
-    QLabel* m_statsMaxValueLabel = nullptr;
-    QLabel* m_statsMeanValueLabel = nullptr;
-    QLabel* m_statsStddevValueLabel = nullptr;
+    QLabel* m_statsTotalTimeValueLabel = nullptr;
 
     QListWidget* m_alertsListWidget = nullptr;
 };

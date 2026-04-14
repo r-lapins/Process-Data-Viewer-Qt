@@ -1,11 +1,9 @@
 #pragma once
 
 #include "pdv/core/analysis_tab.h"
-#include "pdv/wav/wav_analysis_engine.h"
 
-#include <pdt/wav/window.h>
-#include <pdt/wav/peak_detection.h>
-#include <pdt/wav/wav_output.h>
+#include <pdt/pipeline/wav_analysis_session.h>
+#include <pdt/pipeline/wav_analysis_service.h>
 
 class QLabel;
 class QListWidget;
@@ -38,9 +36,9 @@ private:
 
     // ui updates
     void updatePlotVisibility();
-    void renderSignalPlot(const WavAnalysisEngine::AnalysisResult& result);
-    void renderSpectrumPlot(const WavAnalysisEngine::AnalysisResult& result);
-    void renderAnalysis(const WavAnalysisEngine::AnalysisResult& result);
+    void renderSignalPlot(const pdt::WavAnalysisResult& result);
+    void renderSpectrumPlot(const pdt::WavAnalysisResult& result);
+    void renderAnalysis(const pdt::WavAnalysisResult& result);
 
     void exportSignalPlotPng();
     void exportSpectrumPlotPng();

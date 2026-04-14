@@ -17,7 +17,6 @@ set(SOURCES
     # ===== WAV =====
     src/wav/wav_analysis_controller.cpp
     src/wav/wav_analysis_controls_widget.cpp
-    src/wav/wav_analysis_engine.cpp
     src/wav/wav_analysis_plot_widget.cpp
     src/wav/wav_analysis_results_panel.cpp
     src/wav/wav_analysis_tab.cpp
@@ -42,7 +41,6 @@ set(HEADERS
     # ===== WAV =====
     include/pdv/wav/wav_analysis_controller.h
     include/pdv/wav/wav_analysis_controls_widget.h
-    include/pdv/wav/wav_analysis_engine.h
     include/pdv/wav/wav_analysis_plot_widget.h
     include/pdv/wav/wav_analysis_results_panel.h
     include/pdv/wav/wav_analysis_tab.h
@@ -63,5 +61,7 @@ target_link_libraries(process_data_viewer
         Qt6::Widgets
         Qt6::Charts
         Qt6::Concurrent
-        pdt
+        pdt_csv
+        pdt_dsp
+        pdt_io_wav
 )
