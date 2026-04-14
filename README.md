@@ -1,66 +1,39 @@
 # Process Data Viewer (Qt)
 
+![C++20](https://img.shields.io/badge/C%2B%2B-20-blue)
+![Qt6](https://img.shields.io/badge/Qt-6-green)
+![CUDA](https://img.shields.io/badge/CUDA-optional-success)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Build](https://img.shields.io/badge/build-CMake-blue)
+![Platform](https://img.shields.io/badge/platform-Linux-important)
+
 Desktop application for interactive analysis of CSV time-series data and WAV signals.
 
-Built with Qt 6 (Widgets + Charts + Concurrent) and powered by a custom C++ analysis library (process-data-toolkit).
-
-This project consists of:
-- Process Data Toolkit (core C++ library)
-- Process Data Viewer (Qt desktop application)
-
----
-
-## Possible use cases
-
-- analysis of industrial logs
-- diagnostics of sensor data
-- anomaly detection in control systems
+Built with Qt 6 (Widgets + Charts + Concurrent) and powered by a custom C++ library:
+👉 https://github.com/r-lapins/Process-Data-Toolkit
 
 ---
 
 ## Features
 
 ### CSV Analysis
-- Time-series filtering:
-  - by sensor
-  - by time range (from / to)
-- Anomaly detection:
-  - Z-score
-  - IQR
-  - MAD
-- Top-N anomaly selection without full recomputation
-- Statistics:
-  - min / max / mean / stddev
-- Data table view with filtering
-- Plot with anomaly markers
-- Export:
-  - JSON report (global or per-sensor)
-  - filtered CSV with anomaly markers
-  - PNG plot
+- Filtering: sensor / time range
+- Anomaly detection: Z-score, IQR, MAD
+- Statistics: min / max / mean / stddev
+- Table + plot with anomaly markers
+- Export: JSON, CSV, PNG
 
 ---
 
 ### WAV Analysis
-- Signal segment selection (windowed analysis)
-- Spectrum computation:
-  - FFT / DFT / Auto
-- Window functions:
-  - Hann
-  - Hamming
-  - None
-- Peak detection:
-  - local maxima
-  - threshold-based
-- Top-N peak selection without recomputation
-- Statistics:
-  - signal min / max / mean / stddev
-- Plots:
-  - signal waveform
-  - frequency spectrum
-- Export:
-  - PNG plots
-  - spectrum CSV
-  - text report
+- Backend: CPU (DFT/FFT) / GPU (cuFFT)
+- FFT sizes:
+- recommended (power-of-two)
+- advanced (cuFFT optimized)
+- Windowing: Hann / Hamming / None
+- Peak detection: local maxima / threshold
+- Plots: signal + spectrum
+- Export: PNG, CSV, report
 
 ---
 
@@ -75,28 +48,11 @@ This project consists of:
 ---
 
 ### UX / Performance
-- Asynchronous analysis using QtConcurrent
-- UI remains responsive during computation
-- Busy state feedback ("Wait for it.")
-- Smart recomputation:
-  - avoids full recompute when only Top-N changes
+- Async execution (QtConcurrent)
+- Non-blocking UI
+- Cached analysis via WavAnalysisSession
 
 ---
-
-## Underlying Library (Process Data Toolkit)
-
-This application is built on top of a separate C++20 library:
-
-👉 https://github.com/r-lapins/Process-Data-Toolkit
-
-The toolkit provides all core data processing and signal analysis functionality, including:
-
-- CSV parsing and time-series filtering
-- Statistical analysis (mean, stddev, quartiles)
-- Anomaly detection (Z-score, IQR, MAD)
-- WAV signal processing (DFT, FFT, windowing)
-- Spectrum computation and peak detection
-- CLI tools for batch processing and benchmarking
 
 ### Why this separation?
 
@@ -118,59 +74,22 @@ The application is split into three layers:
 
 ```text
 PDV (Qt UI)
-├── Core
-│   ├── MainWindow
-│   ├── FileLoaderService
-│   └── AnalysisTab (factory)
-│
-├── CSV module
-│   ├── CsvAnalysisTab
-│   ├── CsvAnalysisControlsWidget
-│   ├── CsvAnalysisController
-│   ├── CsvAnalysisEngine
-│   └── CsvAnalysisResultsPanel
-│
-├── WAV module
-│   ├── WavAnalysisTab
-│   ├── WavAnalysisControlsWidget
-│   ├── WavAnalysisController
-│   ├── WavAnalysisEngine
-│   └── WavAnalysisResultsPanel
-│
-└── PDT (process-data-toolkit)
-    ├── csv/
-    ├── wav/
-    └── core algorithms
+├── core/
+├── csv/
+├── wav/
+└── PDT
+    ├── io/
+    ├── dsp/
+    ├── compute/
+    ├── pipeline/
+    └── csv/
 ```
 
-### Key design decisions
-
-- Controller pattern
-  - UI (Tab) does not run analysis directly
-  - Controllers handle orchestration + async execution
-
-- Engine layer
-  - pure computation (no Qt)
-  - easy to test / reuse
-
-- Separation CSV vs WAV
-  - similar flow, independent modules
-
-- SessionData
-  - unified data entry point
-  - contains:
-    - CsvData
-    - WavData
+- UI → controllers → PDT
+- no computation in Qt layer
+- reusable backend (CLI + GUI)
 
 ---
-
-## Build Instructions
-
-### Requirements
-
-- C++20
-- Qt 6 (Widgets, Charts, Concurrent)
-- CMake ≥ 3.21
 
 ### Build
 
@@ -180,11 +99,15 @@ cd process_data_viewer_qt
 
 git submodule update --init --recursive
 
-mkdir build
-cd build
+cmake --preset debug
+cmake --build --preset debug
+```
 
-cmake ..
-cmake --build .
+**CUDA:**
+
+```bash
+cmake --preset debug-cuda
+cmake --build --preset debug-cuda
 ```
 
 Run:
@@ -197,83 +120,27 @@ Run:
 
 ## Usage
 
-### Open file
+### CSV
 
-- File → Open
-- or Quick Open (predefined examples folder)
-
-### CSV workflow
-
-1. Load CSV
-2. Adjust:
-   - sensor filter
-   - time range
-   - anomaly method + threshold
-3. Toggle:
-   - auto update / manual recompute
-4. Inspect:
-   - table
-   - plot
-   - alerts
-5. Export results
+1. Load file
+2. Select filter + method
+3. Analyze → inspect → export
 
 ---
 
-### WAV workflow
+### WAV
 
-1. Load WAV
-2. Select:
-   - segment (from, window size)
-   - algorithm (FFT / DFT)
-   - window function
-3. Tune:
-   - threshold
-   - peak mode
-4. Toggle plots:
-   - signal
-   - spectrum
-5. Export:
-   - PNG
-   - CSV
-   - report
+1. Load file
+2. Select segment + backend
+3. Analyze → inspect → export
 
 ---
 
-## Example Outputs
+## Notes
 
-- CSV anomaly report (JSON)
-- CSV with anomaly markers
-- Spectrum CSV (frequency vs magnitude)
-- Spectrum report (text)
-- Plot PNG exports
-
----
-
-## Notable Implementation Details
-
-- Uses QFutureWatcher + QtConcurrent::run
-- Avoids blocking UI thread
-- Partial recomputation optimization:
-  - tryUpdateTopAnomaliesOnly()
-  - tryUpdateDominantPeaksOnly()
-- Plot downsampling (performance-safe rendering)
-- Clean separation of:
-  - UI
-  - orchestration
-  - computation
-
----
-
-## Project Structure
-
-```text
-app/
-  ├── core/
-  ├── csv/
-  ├── wav/
-include/pdv/
-external/process-data-toolkit/
-```
+- Uses QFutureWatcher + QtConcurrent
+- Plot downsampling for performance
+- Analysis caching handled in PDT
 
 ---
 
@@ -288,4 +155,4 @@ external/process-data-toolkit/
 
 ## License
 
-MIT (or your chosen license)
+MIT
