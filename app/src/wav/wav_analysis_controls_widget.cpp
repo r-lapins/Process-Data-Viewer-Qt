@@ -1,8 +1,10 @@
 #include "pdv/wav/wav_analysis_controls_widget.h"
 #include "pdv/core/session_data.h"
 
+#include "pdt/compute/fft_size_policy.h"
+#include "pdt/compute/make_fft_backend.h"
+
 #include <algorithm>
-#include <limits>
 #include <vector>
 
 #include <QLabel>
@@ -13,6 +15,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QVBoxLayout>
@@ -88,12 +91,19 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     m_windowSizeInputStack->addWidget(m_windowSizeComboBox);
     m_windowSizeInputStack->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
+    m_showAdvancedSizesCheckBox = new QCheckBox("Show more sizes", controlsGroup);
+    m_showAdvancedSizesCheckBox->setChecked(false);
+
     m_windowComboBox->addItem("Hann", static_cast<int>(pdt::WindowType::Hann));
     m_windowComboBox->addItem("Hamming", static_cast<int>(pdt::WindowType::Hamming));
-    m_windowComboBox->addItem("None", -1);
+    m_windowComboBox->addItem("None", static_cast<int>(pdt::WindowType::None));
 
     m_algorithmComboBox->addItem("FFT", static_cast<int>(pdt::SpectrumAlgorithm::Fft));
     m_algorithmComboBox->addItem("DFT", static_cast<int>(pdt::SpectrumAlgorithm::Dft));
+
+    if (pdt::is_algorithm_available(pdt::SpectrumAlgorithm::cuFft)) {
+        m_algorithmComboBox->addItem("cuFFT", static_cast<int>(pdt::SpectrumAlgorithm::cuFft));
+    }
 
     m_thresholdSpinBox->setRange(0.0, 1.0);
     m_thresholdSpinBox->setSingleStep(0.05);
@@ -118,6 +128,7 @@ void WavAnalysisControlsWidget::createUi(const SessionData& session)
     controlsLayout->addRow("Threshold:", m_thresholdSpinBox);
     controlsLayout->addRow("Top peaks:", m_topPeaksSpinBox);
     controlsLayout->addRow("Window size:", m_windowSizeInputStack);
+    controlsLayout->addRow(" ", m_showAdvancedSizesCheckBox);
     controlsLayout->addRow("From sample:", m_fromSpinBox);
     controlsLayout->addRow(" ", m_recomputeButton);
     controlsLayout->addRow(" ", m_autoUpdateCheckBox);
@@ -200,7 +211,10 @@ void WavAnalysisControlsWidget::connectControls()
 
     connect(m_algorithmComboBox, &QComboBox::currentIndexChanged, this, [this](int) {
         updateWindowSizeInputMode();
-        if (m_session != nullptr) { updateFromSpinRange(*m_session); }
+        if (m_session != nullptr) {
+            rebuildFftWindowSizeCombo(*m_session);
+            updateFromSpinRange(*m_session);
+        }
 
         updateFromSpinStep();
         triggerAutoAnalysis();
@@ -233,24 +247,30 @@ void WavAnalysisControlsWidget::connectControls()
 
     connect(m_exportSpectrumCsvButton, &QPushButton::clicked, this, &WavAnalysisControlsWidget::exportSpectrumCsvRequested);
     connect(m_exportSpectrumReportButton, &QPushButton::clicked, this, &WavAnalysisControlsWidget::exportSpectrumReportRequested);
+
+    connect(m_showAdvancedSizesCheckBox, &QCheckBox::toggled, this, [this](bool) {
+        if (m_session != nullptr) {
+            rebuildFftWindowSizeCombo(*m_session);
+            updateFromSpinRange(*m_session);
+        }
+
+        updateFromSpinStep();
+        triggerAutoAnalysis();
+    });
 }
 
-WavAnalysisEngine::AnalysisSettings WavAnalysisControlsWidget::settings() const
+pdt::WavAnalysisSettingsCache WavAnalysisControlsWidget::settings() const
 {
     // Gather current UI state into analysis settings passed to the engine
-    WavAnalysisEngine::AnalysisSettings s{};
+    pdt::WavAnalysisSettingsCache s{};
 
     s.algorithm = selectedAlgorithm();
-
-    if (s.window != pdt::WindowType::None) {
-        s.window = static_cast<pdt::WindowType>(m_windowComboBox->currentData().toInt());
-    }
-
-    s.peakMode = static_cast<pdt::PeakDetectionMode>(m_peakModeComboBox->currentData().toInt());
+    s.window = static_cast<pdt::WindowType>(m_windowComboBox->currentData().toInt());
+    s.peak_mode = static_cast<pdt::PeakDetectionMode>(m_peakModeComboBox->currentData().toInt());
     s.threshold = m_thresholdSpinBox->value();
-    s.topPeaks = static_cast<std::size_t>(m_topPeaksSpinBox->value());
+    s.top_peaks = static_cast<std::size_t>(m_topPeaksSpinBox->value());
     s.from = static_cast<std::size_t>(m_fromSpinBox->value());
-    s.windowSize = selectedWindowSize();
+    s.window_size = selectedWindowSize();
 
     return s;
 }
@@ -292,7 +312,10 @@ std::size_t WavAnalysisControlsWidget::selectedWindowSize() const
 {
     const auto selected = static_cast<pdt::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
-    if (selected == pdt::SpectrumAlgorithm::Fft) {
+    using enum pdt::SpectrumAlgorithm;
+    if (selected == Fft || selected == cuFft) {
+        if (m_windowSizeComboBox->count() == 0) { return 0; }
+
         return static_cast<std::size_t>(m_windowSizeComboBox->currentData().toULongLong());
     }
 
@@ -306,7 +329,7 @@ pdt::SpectrumAlgorithm WavAnalysisControlsWidget::selectedAlgorithm() const noex
 
 bool WavAnalysisControlsWidget::useWindow() const noexcept
 {
-    return m_windowComboBox->currentData().toInt() != -1;
+    return static_cast<pdt::WindowType>(m_windowComboBox->currentData().toInt()) != pdt::WindowType::None;
 }
 
 void WavAnalysisControlsWidget::triggerAutoAnalysis()
@@ -320,15 +343,25 @@ void WavAnalysisControlsWidget::updateWindowSizeInputMode()
 {
     const auto selected = static_cast<pdt::SpectrumAlgorithm>(m_algorithmComboBox->currentData().toInt());
 
-    if (selected == pdt::SpectrumAlgorithm::Fft) {
+    using enum pdt::SpectrumAlgorithm;
+    if (selected == Fft || selected == cuFft) {
         m_windowSizeInputStack->setCurrentWidget(m_windowSizeComboBox);
     } else {
         m_windowSizeInputStack->setCurrentWidget(m_windowSizeSpinBox);
+    }
+
+    const bool isCuFft = (selected == cuFft);
+    m_showAdvancedSizesCheckBox->setEnabled(isCuFft);
+
+    if (!isCuFft && m_showAdvancedSizesCheckBox->isChecked()) {
+        QSignalBlocker blocker(*m_showAdvancedSizesCheckBox);
+        m_showAdvancedSizesCheckBox->setChecked(false);
     }
 }
 
 void WavAnalysisControlsWidget::rebuildFftWindowSizeCombo(const SessionData& session)
 {
+    QSignalBlocker blocker(*m_windowSizeComboBox);
     // It generates a list of valid FFT sizes (powers of 2)
     // and selects the best value based on the current UI state.
     const qulonglong previousValue = m_windowSizeComboBox->currentData().toULongLong();
@@ -340,28 +373,26 @@ void WavAnalysisControlsWidget::rebuildFftWindowSizeCombo(const SessionData& ses
     const auto& samples = session.wavData->samples;
     if (samples.empty()) { return; }
 
-    const std::size_t availableFromZero = samples.size();
+    const std::size_t total = session.wavData->samples.size();
+    const std::size_t from = static_cast<std::size_t>(m_fromSpinBox->value());
+    const std::size_t available = (from < total) ? (total - from) : 0;
 
-    // Build FFT-only bin choices as powers of two up to available sample count
-    std::vector<std::size_t> values;
-    for (std::size_t value = 1; value <= availableFromZero; value *= 2) {
-        values.push_back(value);
-        if (value > (std::numeric_limits<std::size_t>::max() / 2)) {
-            // Prevent overflow before the next doubling step
-            break;
-        }
-    }
+    const auto options = pdt::get_fft_size_options(selectedAlgorithm(),
+                                                   available,
+                                                   m_showAdvancedSizesCheckBox->isChecked());
 
-    for (std::size_t value : values) {
-        m_windowSizeComboBox->addItem(
-            QString::number(static_cast<qulonglong>(value)),
-            static_cast<qulonglong>(value)
-            );
-    }
-
-    if (m_windowSizeComboBox->count() == 0) {
+    if (options.empty()) {
+        m_windowSizeComboBox->addItem("N/A", 0);
         return;
     }
+
+    for (const auto& opt : options) {
+        QString label = QString::number(static_cast<qulonglong>(opt.size));
+        if (opt.advanced) { label += " (+)"; }
+        m_windowSizeComboBox->addItem(label, static_cast<qulonglong>(opt.size));
+    }
+
+    if (m_windowSizeComboBox->count() == 0) { return; }
 
     qulonglong targetValue = previousValue;
 
@@ -387,6 +418,8 @@ void WavAnalysisControlsWidget::rebuildFftWindowSizeCombo(const SessionData& ses
 
 void WavAnalysisControlsWidget::updateFromSpinRange(const SessionData& session)
 {
+    QSignalBlocker blocker(*m_fromSpinBox);
+
     if (!session.wavData.has_value()) {
         m_fromSpinBox->setRange(0, 0);
         return;
