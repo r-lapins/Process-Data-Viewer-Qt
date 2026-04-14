@@ -1,5 +1,7 @@
 #include "pdv/wav/wav_analysis_results_panel.h"
 
+#include "pdt/io/wav/wav_output.h"
+
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -33,7 +35,7 @@ void WavAnalysisResultsPanel::clear()
     clearAlerts();
 }
 
-void WavAnalysisResultsPanel::setResults(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result)
+void WavAnalysisResultsPanel::setResults(const SessionData& session, const pdt::WavAnalysisResult& result)
 {
     renderStatistics(session, result);
     renderAlerts(session, result);
@@ -55,10 +57,7 @@ QWidget* WavAnalysisResultsPanel::createStatisticsPanel(QWidget* parent)
     m_statsThresholdValueLabel = new QLabel("-", statsGroup);
     m_statsPeakModeValueLabel = new QLabel("-", statsGroup);
     m_statsDetectedPeaksValueLabel = new QLabel("-", statsGroup);
-    m_statsMinValueLabel = new QLabel("-", statsGroup);
-    m_statsMaxValueLabel = new QLabel("-", statsGroup);
-    m_statsMeanValueLabel = new QLabel("-", statsGroup);
-    m_statsStddevValueLabel = new QLabel("-", statsGroup);
+    m_statsTotalTimeValueLabel = new QLabel("-", statsGroup);
 
     statsLayout->addRow("File type:", m_statsFileTypeValueLabel);
     statsLayout->addRow("Sample rate:", m_statsSampleRateValueLabel);
@@ -71,29 +70,7 @@ QWidget* WavAnalysisResultsPanel::createStatisticsPanel(QWidget* parent)
     statsLayout->addRow("Window size:", m_statsWindowSizeValueLabel);
     statsLayout->addRow("Detected peaks:", m_statsDetectedPeaksValueLabel);
     statsLayout->addRow("Threshold:", m_statsThresholdValueLabel);
-
-    auto* signalGroup = new QGroupBox("Signal", statsGroup);
-    auto* signalLayout = new QHBoxLayout(signalGroup);
-    signalLayout->setContentsMargins(0, 0, 0, 0);
-
-    auto* signalLeftWidget = new QWidget(signalGroup);
-    auto* signalLeftLayout = new QFormLayout(signalLeftWidget);
-    signalLeftLayout->setContentsMargins(0, 0, 0, 0);
-
-    auto* signalRightWidget = new QWidget(signalGroup);
-    auto* signalRightLayout = new QFormLayout(signalRightWidget);
-    signalRightLayout->setContentsMargins(0, 0, 0, 0);
-
-    signalLeftLayout->addRow("Min:", m_statsMinValueLabel);
-    signalLeftLayout->addRow("Max:", m_statsMaxValueLabel);
-
-    signalRightLayout->addRow("Mean:", m_statsMeanValueLabel);
-    signalRightLayout->addRow("Stddev:", m_statsStddevValueLabel);
-
-    signalLayout->addWidget(signalLeftWidget);
-    signalLayout->addWidget(signalRightWidget);
-
-    statsLayout->addRow(signalGroup);
+    statsLayout->addRow("Total time:", m_statsTotalTimeValueLabel);
 
     statsLayout->setLabelAlignment(Qt::AlignLeft);
     statsLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
@@ -130,39 +107,30 @@ void WavAnalysisResultsPanel::clearStatistics()
     m_statsThresholdValueLabel->setText("-");
     m_statsPeakModeValueLabel->setText("-");
     m_statsDetectedPeaksValueLabel->setText("-");
-    m_statsMinValueLabel->setText("-");
-    m_statsMaxValueLabel->setText("-");
-    m_statsMeanValueLabel->setText("-");
-    m_statsStddevValueLabel->setText("-");
+    m_statsTotalTimeValueLabel->setText("-");
 }
 
-void WavAnalysisResultsPanel::renderStatistics(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result)
+void WavAnalysisResultsPanel::renderStatistics(const SessionData& session, const pdt::WavAnalysisResult& result)
 {
     clearStatistics();
 
-    if (!session.wavData.has_value()) {
-        return;
-    }
+    if (!session.wavData.has_value()) { return; }
 
     const auto& wav = *session.wavData;
-    const auto& settings = result.usedSettings;
+    const auto& settings = result.used_settings;
 
     m_statsFileTypeValueLabel->setText("WAV");
     m_statsSampleRateValueLabel->setText(QString::number(wav.sample_rate));
     m_statsChannelsValueLabel->setText(QString::number(wav.channels));
     m_statsTotalSamplesValueLabel->setText(QString::number(static_cast<qulonglong>(wav.samples.size())));
     m_statsUsedFromValueLabel->setText(QString::number(static_cast<qulonglong>(settings.from)));
-    m_statsWindowSizeValueLabel->setText(QString::number(static_cast<qulonglong>(result.rawSegment.size())));
+    m_statsWindowSizeValueLabel->setText(QString::number(static_cast<qulonglong>(result.raw_segment.size())));
     m_statsWindowValueLabel->setText(toString(settings.window));
-    m_statsAlgorithmValueLabel->setText(toString(settings.algorithm));
+    m_statsAlgorithmValueLabel->setText(toString(result.analysis.algorithm));
     m_statsThresholdValueLabel->setText(QString::number(settings.threshold, 'g', 10));
-    m_statsPeakModeValueLabel->setText(toString(settings.peakMode));
-    m_statsDetectedPeaksValueLabel->setText(QString::number(static_cast<qulonglong>(result.allPeaks.size())));
-
-    m_statsMinValueLabel->setText(QString::number(result.stats.min, 'f', 3));
-    m_statsMaxValueLabel->setText(QString::number(result.stats.max, 'f', 3));
-    m_statsMeanValueLabel->setText(QString::number(result.stats.mean, 'e', 1));
-    m_statsStddevValueLabel->setText(QString::number(result.stats.stddev, 'f', 3));
+    m_statsPeakModeValueLabel->setText(toString(settings.peak_mode));
+    m_statsDetectedPeaksValueLabel->setText(QString::number(static_cast<qulonglong>(result.analysis.all_peaks.size())));
+    m_statsTotalTimeValueLabel->setText(QString::number(result.analysis.total_time_ms, 'f', 1) + " ms");
 }
 
 void WavAnalysisResultsPanel::clearAlerts()
@@ -171,7 +139,7 @@ void WavAnalysisResultsPanel::clearAlerts()
     m_alertsListWidget->addItem("No alerts");
 }
 
-void WavAnalysisResultsPanel::renderAlerts(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result)
+void WavAnalysisResultsPanel::renderAlerts(const SessionData& session, const pdt::WavAnalysisResult& result)
 {
     clearAlerts();
 
@@ -185,25 +153,25 @@ void WavAnalysisResultsPanel::renderAlerts(const SessionData& session, const Wav
 
     m_alertsListWidget->clear();
 
-    if (result.processedSegment.empty()) {
+    if (result.processed_segment.empty()) {
         m_alertsListWidget->addItem("Selected segment is empty");
         return;
     }
 
-    if (result.dominantPeaks.empty()) {
+    if (result.analysis.top_peaks.empty()) {
         m_alertsListWidget->addItem("No dominant spectral peaks detected");
         return;
     }
 
     m_alertsListWidget->addItem(
         QString("Detected peaks: %1 | showing top %2")
-            .arg(static_cast<qulonglong>(result.allPeaks.size()))
-            .arg(static_cast<qulonglong>(result.dominantPeaks.size()))
+            .arg(static_cast<qulonglong>(result.analysis.all_peaks.size()))
+            .arg(static_cast<qulonglong>(result.analysis.top_peaks.size()))
     );
 
-    for (std::size_t i = 0; i < result.dominantPeaks.size(); ++i) {
+    for (std::size_t i = 0; i < result.analysis.top_peaks.size(); ++i) {
         m_alertsListWidget->addItem(QString::fromStdString(
-            pdt::format_peak_line(result.dominantPeaks[i], i + 1)
+            pdt::format_peak_line(result.analysis.top_peaks[i], i + 1)
             ));
     }
 }
@@ -212,9 +180,10 @@ QString WavAnalysisResultsPanel::toString(pdt::SpectrumAlgorithm algorithm) cons
 {
     using enum pdt::SpectrumAlgorithm;
     switch (algorithm) {
-    case Dft:  return "DFT";
-    case Fft:  return "FFT";
-    case Auto: return "Auto";
+    case Dft:   return "DFT";
+    case Fft:   return "FFT";
+    case Auto:  return "Auto";
+    case cuFft: return "cuFFT";
     }
     return "-";
 }
@@ -236,7 +205,7 @@ QString WavAnalysisResultsPanel::toString(pdt::PeakDetectionMode mode) const
     using enum pdt::PeakDetectionMode;
     switch (mode) {
     case ThresholdOnly: return "Threshold-Only";
-    case LocalMaxima: return "Local-Maxima";
+    case LocalMaxima:   return "Local-Maxima";
     }
     return "-";
 }

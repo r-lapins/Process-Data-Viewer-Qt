@@ -4,6 +4,8 @@
 #include "pdv/wav/wav_analysis_controls_widget.h"
 #include "pdv/wav/wav_analysis_results_panel.h"
 
+#include "pdt/io/wav/wav_output.h"
+
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -24,6 +26,7 @@ QString toDisplayString(pdt::SpectrumAlgorithm algorithm)
     case Dft:   return "DFT";
     case Fft:   return "FFT";
     case Auto:  return "Auto";
+    case cuFft: return "cuFFT";
     }
 
     return "-";
@@ -61,25 +64,23 @@ QString defaultExportPath(const QString& filePath, const QString& suffix)
     return sourceInfo.dir().filePath(sourceInfo.completeBaseName() + suffix);
 }
 
-pdt::SpectrumReport buildSpectrumReport(const SessionData& session, const WavAnalysisEngine::AnalysisResult& result) {
+pdt::SpectrumReport buildSpectrumReport(const SessionData& session, const pdt::WavAnalysisResult& result) {
     pdt::SpectrumReport report{};
-    report.spectrum = result.spectrum;
-    report.all_peaks = result.allPeaks;
-    report.top_peaks = result.dominantPeaks;
+    report.analysis = result.analysis;
 
-    report.meta.input_path = session.filePath.toStdString();
-    report.meta.sample_rate = session.wavData.has_value() ? static_cast<double>(session.wavData->sample_rate) : 0.0;
-    report.meta.channels = session.wavData.has_value() ? static_cast<std::size_t>(session.wavData->channels) : 0;
+    report.meta.input_path    = session.filePath.toStdString();
+    report.meta.sample_rate   = session.wavData.has_value() ? static_cast<double>(session.wavData->sample_rate) : 0.0;
+    report.meta.channels      = session.wavData.has_value() ? static_cast<std::size_t>(session.wavData->channels) : 0;
     report.meta.total_samples = session.wavData.has_value() ? session.wavData->samples.size() : 0;
 
-    const auto& settings = result.usedSettings;
-    report.meta.from = settings.from;
-    report.meta.windowSize = result.rawSegment.size();
-    report.meta.window = settings.window;
-    report.meta.algorithm = settings.algorithm;
-    report.meta.threshold = settings.threshold;
-    report.meta.peak_mode = settings.peakMode;
-    report.meta.top = settings.topPeaks;
+    const auto& settings = result.used_settings;
+    report.meta.from          = settings.from;
+    report.meta.windowSize    = result.raw_segment.size();
+    report.meta.window        = settings.window;
+    report.meta.algorithm     = result.analysis.algorithm;
+    report.meta.threshold     = settings.threshold;
+    report.meta.peak_mode     = settings.peak_mode;
+    report.meta.top           = settings.top_peaks;
 
     return report;
 }
@@ -150,12 +151,18 @@ void WavAnalysisTab::connectControls()
     connect(m_controlsWidget, &WavAnalysisControlsWidget::signalPlotToggled, this, [this]() { updatePlotVisibility(); });
     connect(m_controlsWidget, &WavAnalysisControlsWidget::spectrumPlotToggled, this, [this]() { updatePlotVisibility(); });
 
-    connect(m_controller, &WavAnalysisController::resultChanged, this, [this](const WavAnalysisEngine::AnalysisResult& result) { renderAnalysis(result); });
+    connect(m_controller, &WavAnalysisController::resultChanged, this, [this](const pdt::WavAnalysisResult& result) { renderAnalysis(result); });
 
     connect(m_controller, &WavAnalysisController::busyChanged,
             this, [this](bool busy) {
                 m_controlsWidget->setBusy(busy);
                 emit analysisStatusChanged(busy, busy ? "Analyzing WAV data..." : "Ready");
+            });
+
+    connect(m_controller, &WavAnalysisController::analysisFailed,
+            this, [this](const QString& message) {
+                QMessageBox::critical(this, "WAV analysis failed", message);
+                emit analysisStatusChanged(false, "Analysis failed");
             });
 
     connect(m_controlsWidget, &WavAnalysisControlsWidget::exportSignalPlotRequested, this, &WavAnalysisTab::exportSignalPlotPng);
@@ -171,7 +178,7 @@ void WavAnalysisTab::recomputeAnalysis()
     m_controller->recompute();
 }
 
-void WavAnalysisTab::renderAnalysis(const WavAnalysisEngine::AnalysisResult& result)
+void WavAnalysisTab::renderAnalysis(const pdt::WavAnalysisResult& result)
 {
     m_resultsPanel->setResults(m_session, result);
     renderSignalPlot(result);
@@ -190,18 +197,18 @@ QWidget* WavAnalysisTab::createSpectrumPlot(QWidget* parent)
     return m_spectrumChartWidget;
 }
 
-void WavAnalysisTab::renderSignalPlot(const WavAnalysisEngine::AnalysisResult& result)
+void WavAnalysisTab::renderSignalPlot(const pdt::WavAnalysisResult& result)
 {
-    const QString fromInfo = QString::number(static_cast<qulonglong>(result.usedSettings.from));
+    const QString fromInfo = QString::number(static_cast<qulonglong>(result.used_settings.from));
     const QFileInfo fileInfo(m_session.filePath);
 
-    m_signalChartWidget->updatePlot(result.rawSegment, fromInfo, QString("Signal plot - %1").arg(fileInfo.fileName()));
+    m_signalChartWidget->updatePlot(result.raw_segment, fromInfo, QString("Signal plot - %1").arg(fileInfo.fileName()));
 }
 
-void WavAnalysisTab::renderSpectrumPlot(const WavAnalysisEngine::AnalysisResult& result)
+void WavAnalysisTab::renderSpectrumPlot(const pdt::WavAnalysisResult& result)
 {
     const QFileInfo fileInfo(m_session.filePath);
-    m_spectrumChartWidget->updatePlot(result.spectrum, QString("Spectrum plot - %1").arg(fileInfo.fileName()));
+    m_spectrumChartWidget->updatePlot(result.analysis.spectrum, QString("Spectrum plot - %1").arg(fileInfo.fileName()));
 }
 
 void WavAnalysisTab::exportSignalPlotPng()
@@ -280,7 +287,7 @@ void WavAnalysisTab::exportSpectrumCsv()
         return;
     }
 
-    if (!pdt::write_spectrum_csv(out, result.spectrum) || !out) {
+    if (!pdt::write_spectrum_csv(out, result.analysis.spectrum) || !out) {
         QMessageBox::critical(this, "Export spectrum CSV", QString("Failed to write CSV file:\n%1").arg(filePath));
         return;
     }
