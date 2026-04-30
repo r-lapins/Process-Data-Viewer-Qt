@@ -22,7 +22,7 @@ class WavAnalysisControlsWidget : public QWidget
 public:
     explicit WavAnalysisControlsWidget(const SessionData& session, QWidget* parent = nullptr);
 
-    [[nodiscard]] pdt::WavAnalysisSettingsCache settings() const;
+    [[nodiscard]] pdt::WavAnalysisSettings settings() const;
     [[nodiscard]] bool isAutoUpdateEnabled() const noexcept;
     [[nodiscard]] bool isSignalPlotEnabled() const noexcept;
     [[nodiscard]] bool isSpectrumPlotEnabled() const noexcept;

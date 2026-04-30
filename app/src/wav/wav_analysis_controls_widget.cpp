@@ -259,16 +259,16 @@ void WavAnalysisControlsWidget::connectControls()
     });
 }
 
-pdt::WavAnalysisSettingsCache WavAnalysisControlsWidget::settings() const
+pdt::WavAnalysisSettings WavAnalysisControlsWidget::settings() const
 {
     // Gather current UI state into analysis settings passed to the engine
-    pdt::WavAnalysisSettingsCache s{};
+    pdt::WavAnalysisSettings s{};
 
     s.algorithm = selectedAlgorithm();
     s.window = static_cast<pdt::WindowType>(m_windowComboBox->currentData().toInt());
     s.peak_mode = static_cast<pdt::PeakDetectionMode>(m_peakModeComboBox->currentData().toInt());
     s.threshold = m_thresholdSpinBox->value();
-    s.top_peaks = static_cast<std::size_t>(m_topPeaksSpinBox->value());
+    s.max_peaks = static_cast<std::size_t>(m_topPeaksSpinBox->value());
     s.from = static_cast<std::size_t>(m_fromSpinBox->value());
     s.window_size = selectedWindowSize();
 

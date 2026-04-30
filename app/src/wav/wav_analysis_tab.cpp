@@ -80,7 +80,7 @@ pdt::SpectrumReport buildSpectrumReport(const SessionData& session, const pdt::W
     report.meta.algorithm     = result.analysis.algorithm;
     report.meta.threshold     = settings.threshold;
     report.meta.peak_mode     = settings.peak_mode;
-    report.meta.top           = settings.top_peaks;
+    report.meta.max_peaks     = settings.max_peaks;
 
     return report;
 }

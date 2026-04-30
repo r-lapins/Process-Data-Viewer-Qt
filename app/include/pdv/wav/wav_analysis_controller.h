@@ -22,8 +22,8 @@ public:
 
     void recompute();
 
-    void setSettings(const pdt::WavAnalysisSettingsCache& settings);
-    [[nodiscard]] const pdt::WavAnalysisSettingsCache& settings() const noexcept;
+    void setSettings(const pdt::WavAnalysisSettings& settings);
+    [[nodiscard]] const pdt::WavAnalysisSettings& settings() const noexcept;
 
     [[nodiscard]] bool isBusy() const noexcept;
     [[nodiscard]] bool hasResult() const noexcept;
@@ -41,7 +41,7 @@ private:
     void handleRecomputeFinished();
 
     const SessionData& m_session;
-    pdt::WavAnalysisSettingsCache m_settings{};
+    pdt::WavAnalysisSettings m_settings{};
 
     std::optional<pdt::WavAnalysisResult> m_result;
     std::unique_ptr<pdt::WavAnalysisSession> m_analysisSession;

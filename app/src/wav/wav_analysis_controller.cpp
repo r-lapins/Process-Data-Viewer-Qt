@@ -37,14 +37,7 @@ void WavAnalysisController::startRecompute()
 {
     if (!m_analysisSession) {
         pdt::WavAnalysisResult emptyResult{};
-        emptyResult.used_settings = pdt::WavAnalysisSettingsCache{.sample_rate = 0.0,
-                                                                  .algorithm = m_settings.algorithm,
-                                                                  .peak_mode = m_settings.peak_mode,
-                                                                  .window = m_settings.window,
-                                                                  .top_peaks = m_settings.top_peaks,
-                                                                  .from = m_settings.from,
-                                                                  .window_size = m_settings.window_size,
-                                                                  .threshold = m_settings.threshold};
+        emptyResult.used_settings = m_settings;
 
         m_result = std::move(emptyResult);
         emit resultChanged(*m_result);
@@ -90,12 +83,12 @@ void WavAnalysisController::handleRecomputeFinished()
     }
 }
 
-void WavAnalysisController::setSettings(const pdt::WavAnalysisSettingsCache& settings)
+void WavAnalysisController::setSettings(const pdt::WavAnalysisSettings& settings)
 {
     m_settings = settings;
 }
 
-const pdt::WavAnalysisSettingsCache& WavAnalysisController::settings() const noexcept
+const pdt::WavAnalysisSettings& WavAnalysisController::settings() const noexcept
 {
     return m_settings;
 }
