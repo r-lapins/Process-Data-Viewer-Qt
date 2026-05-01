@@ -20,6 +20,12 @@ set(SOURCES
     src/wav/wav_analysis_plot_widget.cpp
     src/wav/wav_analysis_results_panel.cpp
     src/wav/wav_analysis_tab.cpp
+
+    # ===== RTL-SDR =====
+    src/rtlsdr/rtlsdr_analysis_controller.cpp
+    src/rtlsdr/rtlsdr_analysis_controls_widget.cpp
+    src/rtlsdr/rtlsdr_analysis_results_panel.cpp
+    src/rtlsdr/rtlsdr_analysis_tab.cpp
 )
 
 set(HEADERS
@@ -44,6 +50,12 @@ set(HEADERS
     include/pdv/wav/wav_analysis_plot_widget.h
     include/pdv/wav/wav_analysis_results_panel.h
     include/pdv/wav/wav_analysis_tab.h
+
+    # ===== RTL-SDR =====
+    include/pdv/rtlsdr/rtlsdr_analysis_controller.h
+    include/pdv/rtlsdr/rtlsdr_analysis_controls_widget.h
+    include/pdv/rtlsdr/rtlsdr_analysis_results_panel.h
+    include/pdv/rtlsdr/rtlsdr_analysis_tab.h
 )
 
 qt_add_executable(process_data_viewer
@@ -64,4 +76,5 @@ target_link_libraries(process_data_viewer
         pdt_csv
         pdt_dsp
         pdt_io_wav
+        pdt_io_rtlsdr
 )
