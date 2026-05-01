@@ -39,8 +39,10 @@ void MainWindow::createMenu()
 {
     auto* fileMenu = menuBar()->addMenu("File");
     m_openAction = fileMenu->addAction("Open");
+    m_rtlSdrAction = fileMenu->addAction("RTL-SDR");
 
     connect(m_openAction, &QAction::triggered, this, &MainWindow::openFile);
+    connect(m_rtlSdrAction, &QAction::triggered, this, &MainWindow::openRtlSdrTab);
 }
 
 void MainWindow::createToolbar()
@@ -49,6 +51,7 @@ void MainWindow::createToolbar()
     toolbar->setMovable(false);
 
     m_quickOpenAction = toolbar->addAction("Quick Open");
+    toolbar->addAction(m_rtlSdrAction);
 
     connect(m_quickOpenAction, &QAction::triggered, this, &MainWindow::openFileFromDataFolder);
 }
@@ -120,6 +123,15 @@ void MainWindow::loadFileAsync(const QString &filePath)
     m_loadWatcher->setFuture(future);
 }
 
+void MainWindow::openRtlSdrTab()
+{
+    SessionData session;
+    session.kind = SessionData::FileKind::RtlSdr;
+    session.filePath = "RTL-SDR";
+
+    addAnalysisTab(session);
+}
+
 void MainWindow::handleLoadFinished()
 {
     setLoadingUiState(false);
@@ -131,7 +143,12 @@ void MainWindow::handleLoadFinished()
         return;
     }
 
-    auto* tab = AnalysisTab::create(result.session, m_tabWidget);
+    addAnalysisTab(result.session);
+}
+
+void MainWindow::addAnalysisTab(const SessionData& session)
+{
+    auto* tab = AnalysisTab::create(session, m_tabWidget);
     if (tab == nullptr) {
         statusBar()->showMessage("Failed to create analysis tab.", 5000);
         return;
@@ -149,7 +166,7 @@ void MainWindow::handleLoadFinished()
 
     QTimer::singleShot(0, this, [this]() { adjustWindowToCurrentTab(); });
 
-    statusBar()->showMessage(QString("Loaded file: %1").arg(tab->tabTitle()), 3000);
+    statusBar()->showMessage(QString("Opened: %1").arg(tab->tabTitle()), 3000);
 
     updateWindowTitle();
 }
@@ -164,6 +181,10 @@ void MainWindow::setLoadingUiState(bool loading)
 
     if (m_quickOpenAction != nullptr) {
         m_quickOpenAction->setEnabled(!loading);
+    }
+
+    if (m_rtlSdrAction != nullptr) {
+        m_rtlSdrAction->setEnabled(!loading);
     }
 
     if (loading) {
@@ -225,4 +246,3 @@ void MainWindow::adjustWindowToCurrentTab()
 }
 
 } // namespace pdv
-

@@ -25,8 +25,10 @@ private:
 
     void openFile();
     void openFileFromDataFolder();
+    void openRtlSdrTab();
 
     void loadFileAsync(const QString& filePath);
+    void addAnalysisTab(const SessionData& session);
     void handleLoadFinished();
     void setLoadingUiState(bool loading);
     void updateWindowTitle();
@@ -38,6 +40,7 @@ private:
 
     QAction* m_openAction = nullptr;
     QAction* m_quickOpenAction = nullptr;
+    QAction* m_rtlSdrAction = nullptr;
     QFutureWatcher<LoadResult>* m_loadWatcher = nullptr;
     QTabWidget* m_tabWidget = nullptr;
 

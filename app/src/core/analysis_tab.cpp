@@ -1,5 +1,6 @@
 #include "pdv/core/analysis_tab.h"
 #include "pdv/csv/csv_analysis_tab.h"
+#include "pdv/rtlsdr/rtlsdr_analysis_tab.h"
 #include "pdv/wav/wav_analysis_tab.h"
 
 #include <QFileInfo>
@@ -31,6 +32,9 @@ AnalysisTab* AnalysisTab::create(const SessionData& session, QWidget* parent)
 
     case Wav:
         return new WavAnalysisTab(session, parent);
+
+    case RtlSdr:
+        return new RtlSdrAnalysisTab(session, parent);
 
     case Unknown:
     default:

@@ -14,7 +14,8 @@ struct SessionData
     enum class FileKind {
         Unknown,
         Csv,
-        Wav
+        Wav,
+        RtlSdr
     };
 
     FileKind kind = FileKind::Unknown;
