@@ -7,7 +7,7 @@
 ![Build](https://img.shields.io/badge/build-CMake-blue)
 ![Platform](https://img.shields.io/badge/platform-Linux-important)
 
-Desktop application for interactive analysis of CSV time-series data and WAV signals.
+Desktop application for interactive analysis of CSV time-series data, WAV signals, and live RTL-SDR IQ streams.
 
 Built with Qt 6 (Widgets + Charts + Concurrent) and powered by a custom C++ library:
 👉 https://github.com/r-lapins/Process-Data-Toolkit
@@ -23,8 +23,6 @@ Built with Qt 6 (Widgets + Charts + Concurrent) and powered by a custom C++ libr
 - Table + plot with anomaly markers
 - Export: JSON, CSV, PNG
 
----
-
 ### WAV Analysis
 - Backend: CPU (DFT/FFT) / GPU (cuFFT)
 - FFT sizes:
@@ -35,6 +33,16 @@ Built with Qt 6 (Widgets + Charts + Concurrent) and powered by a custom C++ libr
 - Plots: signal + spectrum
 - Export: PNG, CSV, report
 
+### RTL-SDR Analysis
+- Live RTL-SDR device streaming
+- Frequency presets: FM broadcast, airband, NOAA, ISM 433.92 MHz, ADS-B
+- Configurable frequency, sample rate, gain, block size, refresh interval
+- Live IQ plot and spectrum plot
+- FFT / optional cuFFT backend
+- Windowing: Hann / Hamming / None
+- Peak detection: local maxima / threshold
+- Export: PNG, CSV
+
 ---
 
 ## Demo
@@ -44,6 +52,9 @@ Built with Qt 6 (Widgets + Charts + Concurrent) and powered by a custom C++ libr
 
 ### WAV Analysis
 ![WAV Demo](docs/demo/wav_demo.gif)
+
+### RTL-SDR Analysis
+![RTL-SDR Demo](docs/demo/rtlsdr_demo.png)
 
 ---
 
@@ -76,7 +87,8 @@ The application is split into three layers:
 PDV (Qt UI)
 ├── core/
 ├── csv/
-├── wav/
+├── wav//
+├── rtlsdr/
 └── PDT
     ├── io/
     ├── dsp/
@@ -116,6 +128,18 @@ Run:
 ./process_data_viewer
 ```
 
+**RTL-SDR support requires librtlsdr development files.**
+
+Fedora:
+```bash
+sudo dnf install rtl-sdr-devel
+```
+
+Ubuntu/Debian:
+```bash
+sudo apt install librtlsdr-dev
+```
+
 ---
 
 ## Usage
@@ -126,13 +150,18 @@ Run:
 2. Select filter + method
 3. Analyze → inspect → export
 
----
-
 ### WAV
 
 1. Load file
 2. Select segment + backend
 3. Analyze → inspect → export
+
+### RTL-SDR
+
+1. Open `RTL-SDR` from the toolbar or File menu
+2. Select device and frequency preset or enter frequency manually
+3. Adjust sample rate, gain, block size, and refresh interval
+4. Start stream → inspect IQ/spectrum → export
 
 ---
 
@@ -141,14 +170,16 @@ Run:
 - Uses QFutureWatcher + QtConcurrent
 - Plot downsampling for performance
 - Analysis caching handled in PDT
+- RTL-SDR stream processing is throttled by refresh interval
+- Latest IQ frame is analyzed; stale frames are dropped to keep UI responsive
 
 ---
 
 ## Future Improvements
 
-- Shared base interface for CSV/WAV analysis
-- Plugin-style analysis modules
+- Shared base interface for CSV/WAV/RTL-SDR analysis
 - Unit tests for controllers
+- Frequency preset management (RTL-SDR)
 - Drag & drop file loading
 
 ---
