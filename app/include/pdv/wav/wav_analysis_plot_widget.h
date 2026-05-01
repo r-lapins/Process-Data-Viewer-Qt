@@ -3,6 +3,7 @@
 #include <QtCharts/QChartView>
 #include "pdt/dsp/spectrum.h"
 
+#include <complex>
 #include <span>
 
 class QValueAxis;
@@ -21,9 +22,11 @@ public:
 
     void resetPlot();
     void updatePlot(std::span<const double> segment, const QString& fromInfo, const QString& title);
+    void updateIqPlot(std::span<const std::complex<float>> samples, const QString& title);
 
 private:
     QLineSeries* m_series = nullptr;
+    QLineSeries* m_qSeries = nullptr;
     QValueAxis* m_axisX = nullptr;
     QValueAxis* m_axisY = nullptr;
 };

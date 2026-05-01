@@ -18,8 +18,12 @@ SignalChartWidget::SignalChartWidget(QWidget* parent)
 {
     auto* chart = new QChart();
     m_series = new QLineSeries();
+    m_qSeries = new QLineSeries();
+    m_series->setName("I");
+    m_qSeries->setName("Q");
 
     chart->addSeries(m_series);
+    chart->addSeries(m_qSeries);
     chart->legend()->hide();
     chart->setTitle("Signal");
 
@@ -42,6 +46,8 @@ SignalChartWidget::SignalChartWidget(QWidget* parent)
     chart->addAxis(m_axisY, Qt::AlignLeft);
     m_series->attachAxis(m_axisX);
     m_series->attachAxis(m_axisY);
+    m_qSeries->attachAxis(m_axisX);
+    m_qSeries->attachAxis(m_axisY);
 
     setChart(chart);
     setRenderHint(QPainter::Antialiasing);
@@ -53,6 +59,8 @@ SignalChartWidget::SignalChartWidget(QWidget* parent)
 void SignalChartWidget::resetPlot()
 {
     m_series->clear();
+    m_qSeries->clear();
+    chart()->legend()->hide();
     m_axisX->setRange(0, 1);
     m_axisY->setRange(-1, 1);
 }
@@ -95,6 +103,57 @@ void SignalChartWidget::updatePlot(std::span<const double> segment, const QStrin
 
     m_series->replace(pts);
     m_axisX->setRange(0, static_cast<qreal>(segment.size() - 1));
+
+    if (minValue == maxValue) {
+        const double pad = (minValue == 0.0) ? 1.0 : std::abs(minValue) * 0.1;
+        m_axisY->setRange(minValue - pad, maxValue + pad);
+    } else {
+        const double pad = (maxValue - minValue) * 0.05;
+        m_axisY->setRange(minValue - pad, maxValue + pad);
+    }
+}
+
+void SignalChartWidget::updateIqPlot(std::span<const std::complex<float>> samples, const QString& title)
+{
+    resetPlot();
+
+    if (samples.empty()) {
+        chart()->setTitle(title);
+        return;
+    }
+
+    chart()->setTitle(title);
+    chart()->legend()->show();
+
+    constexpr std::size_t kMaxPoints = 4000;
+    const std::size_t step = std::max<std::size_t>(1, (samples.size() + kMaxPoints - 1) / kMaxPoints);
+
+    QVector<QPointF> iPts;
+    QVector<QPointF> qPts;
+    iPts.reserve(static_cast<int>((samples.size() + step - 1) / step));
+    qPts.reserve(static_cast<int>((samples.size() + step - 1) / step));
+
+    double minValue = samples.front().real();
+    double maxValue = samples.front().real();
+
+    for (std::size_t idx = 0; idx < samples.size(); idx += step) {
+        const double iValue = samples[idx].real();
+        const double qValue = samples[idx].imag();
+
+        iPts.append(QPointF(static_cast<qreal>(idx), static_cast<qreal>(iValue)));
+        qPts.append(QPointF(static_cast<qreal>(idx), static_cast<qreal>(qValue)));
+
+        minValue = std::min({minValue, iValue, qValue});
+        maxValue = std::max({maxValue, iValue, qValue});
+    }
+
+    if (iPts.isEmpty() || qPts.isEmpty()) {
+        return;
+    }
+
+    m_series->replace(iPts);
+    m_qSeries->replace(qPts);
+    m_axisX->setRange(0, static_cast<qreal>(samples.size() - 1));
 
     if (minValue == maxValue) {
         const double pad = (minValue == 0.0) ? 1.0 : std::abs(minValue) * 0.1;
